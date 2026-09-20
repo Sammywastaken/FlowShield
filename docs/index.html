@@ -1,0 +1,1254 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>FlowShield · Flood simulation and early warning for Kerala</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Hanken+Grotesk:wght@400;500;600&display=swap">
+<style>:root{--bg:#07071a;--bg2:#0c0c26;--panel:#101030;--panel2:#15153b;--line:#26264f;--line2:#33336a;--ink:#ece9ff;--mut:#9391bd;--dim:#66658f;--vio:#a99bff;--vio2:#7b64ff;--safe:#3ddc97;--warn:#ffb84d;--crit:#ff4d6d;--water:#4fc3ff;
+--serif:'Cormorant Garamond','Iowan Old Style',Georgia,serif;--sans:'Hanken Grotesk','Segoe UI',system-ui,-apple-system,sans-serif;--r:10px}
+@media (prefers-color-scheme:light){:root:not([data-theme="dark"]){--bg:#f3f2fb;--bg2:#ebe9f8;--panel:#ffffff;--panel2:#f6f5fd;--line:#dcd9f0;--line2:#c6c1e8;--ink:#1a1840;--mut:#5b5988;--dim:#8a88b0;--vio:#5b45d6;--vio2:#4630c4;--safe:#12a36a;--warn:#c77a00;--crit:#d92d50;--water:#0a7fc4}}
+:root[data-theme="light"]{--bg:#f3f2fb;--bg2:#ebe9f8;--panel:#ffffff;--panel2:#f6f5fd;--line:#dcd9f0;--line2:#c6c1e8;--ink:#1a1840;--mut:#5b5988;--dim:#8a88b0;--vio:#5b45d6;--vio2:#4630c4;--safe:#12a36a;--warn:#c77a00;--crit:#d92d50;--water:#0a7fc4}
+*{box-sizing:border-box}
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 var(--sans);-webkit-font-smoothing:antialiased;
+background-image:radial-gradient(900px 500px at 88% -10%,rgba(123,100,255,.16),transparent 60%),radial-gradient(700px 500px at -5% 105%,rgba(79,195,255,.07),transparent 60%);background-attachment:fixed}
+button,select,input{font:inherit;color:inherit}
+h1,h2,h3{margin:0;font-family:var(--serif);font-weight:600}
+.top{display:flex;align-items:center;gap:22px;padding:14px 22px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.brand h1{font-size:34px;letter-spacing:.06em;color:var(--vio);line-height:1}
+.brand p{margin:2px 0 0;font-family:var(--serif);font-size:17px;color:var(--ink);opacity:.85}
+.region{color:var(--mut);font-size:13px;flex:1;min-width:220px}
+.region b{color:var(--ink);font-weight:600}
+.btn{background:var(--panel2);border:1px solid var(--line2);border-radius:8px;padding:7px 13px;cursor:pointer;transition:border-color .15s,background .15s}
+.btn:hover{border-color:var(--vio)}
+.btn.pri{background:var(--vio2);border-color:var(--vio2);color:#fff;font-weight:600}
+.btn.pri:hover{background:var(--vio)}
+.btn:focus-visible,select:focus-visible,input:focus-visible,summary:focus-visible,.row:focus-visible,.tab:focus-visible{outline:2px solid var(--vio);outline-offset:2px}
+.alertbar{margin:12px 22px 0;padding:11px 16px;border-radius:var(--r);border:1px solid var(--line2);display:flex;gap:14px;align-items:center;background:var(--panel)}
+.alertbar .dot{width:12px;height:12px;border-radius:50%;flex:none}
+.alertbar b{font-weight:650}
+.alertbar.crit{border-color:var(--crit);background:linear-gradient(90deg,rgba(255,77,109,.18),var(--panel) 70%)}
+.alertbar.crit .dot{background:var(--crit);box-shadow:0 0 0 5px rgba(255,77,109,.25)}
+.alertbar.warn{border-color:var(--warn);background:linear-gradient(90deg,rgba(255,184,77,.15),var(--panel) 70%)}
+.alertbar.warn .dot{background:var(--warn);box-shadow:0 0 0 5px rgba(255,184,77,.22)}
+.alertbar.safe .dot{background:var(--safe)}
+.layout{display:grid;grid-template-columns:300px minmax(0,1fr) 380px;gap:14px;padding:14px 22px 30px;align-items:start}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r)}
+.controls{position:sticky;top:8px;max-height:calc(100vh - 16px);overflow:auto;padding:6px 14px 0}
+.controls details{border-bottom:1px solid var(--line);padding:8px 0}
+.controls summary{cursor:pointer;font-family:var(--serif);font-size:19px;font-weight:600;color:var(--vio);padding:2px 0;list-style:none}
+.controls summary::-webkit-details-marker{display:none}
+.controls summary::after{content:'+';float:right;color:var(--dim)}
+.controls details[open] summary::after{content:'–'}
+.ctl{margin:9px 0}
+.ctl label{display:flex;justify-content:space-between;color:var(--mut);font-size:12.5px}
+.ctl label span{color:var(--ink);font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--vio2);margin:3px 0 0}
+select,input[type=number]{width:100%;background:var(--panel2);border:1px solid var(--line2);border-radius:7px;padding:6px 8px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.chip{background:var(--panel2);border:1px solid var(--line2);border-radius:999px;padding:4px 11px;font-size:12.5px;cursor:pointer;color:var(--ink)}
+.chip.on{background:var(--vio2);border-color:var(--vio2);color:#fff}
+.chip:hover{border-color:var(--vio)}
+.note{color:var(--mut);font-size:12px;margin:6px 0}
+.runbar{position:sticky;bottom:0;background:linear-gradient(transparent,var(--panel) 30%);padding:14px 0 12px}
+.runbar .btn{width:100%;padding:11px;font-size:15px}
+.runbar .btn.dirty{animation:pulse 1.6s ease-in-out infinite}
+@keyframes pulse{50%{box-shadow:0 0 0 6px rgba(123,100,255,.3)}}
+@media (prefers-reduced-motion:reduce){.runbar .btn.dirty{animation:none}}
+.prog{height:4px;background:var(--line);border-radius:4px;margin-top:8px;overflow:hidden;display:none}
+.prog i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--vio2),var(--water))}
+.center{display:flex;flex-direction:column;gap:14px;min-width:0}
+.maptools{display:flex;gap:6px;flex-wrap:wrap;padding:10px 12px;border-bottom:1px solid var(--line);align-items:center}
+.maptools .sep{flex:1}
+.mapwrap{position:relative;line-height:0}
+#map{width:100%;aspect-ratio:4/3;display:block;cursor:crosshair;border-radius:0 0 0 0;touch-action:none}
+.tip{position:absolute;pointer-events:none;background:rgba(8,8,28,.94);border:1px solid var(--line2);border-radius:8px;padding:8px 10px;font-size:12px;line-height:1.5;color:#ece9ff;min-width:170px;display:none;z-index:4}
+.tip b{color:var(--vio)}
+.legend{position:absolute;left:10px;bottom:10px;background:rgba(8,8,28,.82);border:1px solid var(--line2);border-radius:8px;padding:6px 9px;font-size:11.5px;line-height:1.3;color:#ece9ff}
+.legend .bar{height:8px;width:170px;border-radius:4px;margin:3px 0}
+.legend .ends{display:flex;justify-content:space-between;color:#b9b6e6}
+.timebar{display:flex;gap:12px;align-items:center;padding:10px 14px;border-top:1px solid var(--line)}
+.timebar input[type=range]{flex:1}
+.timebar .clock{font-variant-numeric:tabular-nums;min-width:170px;font-size:13px}
+.timebar .clock b{font-family:var(--serif);font-size:20px;color:var(--vio)}
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);padding:0 10px;overflow:auto}
+.tab{background:none;border:0;border-bottom:2px solid transparent;padding:11px 14px;cursor:pointer;color:var(--mut);font-family:var(--serif);font-size:18px;font-weight:600;white-space:nowrap}
+.tab.on{color:var(--vio);border-color:var(--vio)}
+.panel{padding:14px;display:none}
+.panel.on{display:block}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.cbox{border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:var(--panel2);min-width:0}
+.cbox h3{font-size:17px;color:var(--ink);margin-bottom:2px}
+.cbox small{color:var(--mut);font-size:11.5px}
+canvas.ch{width:100%;height:170px;display:block}
+.right{display:flex;flex-direction:column;gap:14px;min-width:0}
+.kpis{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line);border-radius:var(--r);overflow:hidden;border:1px solid var(--line)}
+.kpi{background:var(--panel);padding:10px 13px}
+.kpi .v{font-family:var(--serif);font-size:30px;font-weight:600;line-height:1.05;font-variant-numeric:tabular-nums}
+.kpi .l{color:var(--mut);font-size:12px}
+.kpi .s{color:var(--dim);font-size:11.5px}
+.zones{max-height:560px;overflow:auto}
+.zhead{display:flex;justify-content:space-between;align-items:baseline;padding:11px 14px 4px}
+.zhead h2{font-size:22px;color:var(--vio)}
+.row{display:grid;grid-template-columns:14px 1fr auto;gap:10px;align-items:center;padding:8px 14px;border-top:1px solid var(--line);cursor:pointer}
+.row:hover,.row.sel{background:var(--panel2)}
+.row.sel{box-shadow:inset 3px 0 var(--vio)}
+.pill{width:12px;height:12px;border-radius:50%}
+.row .n{font-weight:600}
+.row .s{color:var(--mut);font-size:12px}
+.row .p{text-align:right;font-variant-numeric:tabular-nums;font-size:13px}
+.row .p small{display:block;color:var(--mut);font-size:11.5px}
+.evac{margin:0 14px 12px;padding:9px 11px;border:1px dashed var(--line2);border-radius:8px;font-size:12.5px;color:var(--mut)}
+.evac b{color:var(--ink)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:right;font-variant-numeric:tabular-nums}
+th:first-child,td:first-child{text-align:left}
+th{color:var(--mut);font-weight:500;font-size:12px}
+tr.clk{cursor:pointer}tr.clk:hover td{background:var(--panel2)}tr.clk.on td{background:var(--panel2);color:var(--vio)}
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:10px 0}
+.metrics div{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+.metrics b{display:block;font-family:var(--serif);font-size:24px;color:var(--vio)}
+.metrics span{color:var(--mut);font-size:12px}
+.bars .b{display:grid;grid-template-columns:130px 1fr 34px;gap:8px;align-items:center;font-size:12px;margin:3px 0;color:var(--mut)}
+.bars .b i{display:block;height:8px;border-radius:4px;background:var(--vio2)}
+.bars .b i.t{background:var(--water)}
+.doc{max-width:860px;line-height:1.6;color:var(--ink)}
+.doc h3{font-size:22px;color:var(--vio);margin:16px 0 4px}
+.doc code,.eq{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:1px 6px}
+.eq{display:block;padding:8px 12px;margin:6px 0;overflow-x:auto;white-space:pre}
+.doc p{margin:5px 0;color:var(--mut)}
+.doc li{color:var(--mut);margin:2px 0}
+.modal{position:fixed;inset:0;background:rgba(3,3,15,.72);display:none;align-items:center;justify-content:center;z-index:50;padding:20px}
+.modal.on{display:flex}
+.modal .box{background:var(--panel);border:1px solid var(--line2);border-radius:12px;max-width:820px;width:100%;max-height:88vh;overflow:auto;padding:18px 20px}
+.modal h2{font-size:26px;color:var(--vio);margin-bottom:6px}
+.alertitem{border:1px solid var(--line);border-left:4px solid var(--crit);border-radius:8px;padding:9px 12px;margin:8px 0;background:var(--panel2)}
+.alertitem.w{border-left-color:var(--warn)}
+.alertitem .ml{color:var(--ink);margin-top:3px}
+.alertitem .en{color:var(--mut);font-size:13px}
+textarea{width:100%;height:240px;background:var(--panel2);border:1px solid var(--line2);border-radius:8px;color:var(--ink);font:12px ui-monospace,Menlo,monospace;padding:8px}
+.toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--vio2);color:#fff;padding:9px 16px;border-radius:9px;display:none;z-index:60;max-width:90vw}
+.tool.on{background:var(--vio2);border-color:var(--vio2);color:#fff}
+.sw{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+@media (max-width:1240px){.layout{grid-template-columns:280px minmax(0,1fr)}.right{grid-column:1/-1}.zones{max-height:none}}
+@media (max-width:820px){.layout{grid-template-columns:1fr;padding:10px}.controls{position:static;max-height:none}.grid2{grid-template-columns:1fr}.metrics{grid-template-columns:1fr 1fr}.top,.alertbar{margin-left:10px;margin-right:10px;padding-left:12px;padding-right:12px}.brand h1{font-size:28px}}
+</style></head><body><header class="top">
+  <div class="brand"><h1>FLOWSHIELD</h1><p>Predict the flood. Protect the future.</p></div>
+  <div class="region"><b>Kerala midland–lowland river basin.</b> Physics-based flood twin with AI early warning. Terrain is generated from Ghats-to-coast parameters; real DEM import is built in.</div>
+  <button class="btn" id="btnBulletin">Alert bulletin</button>
+  <button class="btn" id="btnExport">Export results</button>
+</header>
+<div class="alertbar safe" id="alertbar" role="status" aria-live="polite"><span class="dot"></span><span>Building the basin…</span></div>
+<main class="layout">
+  <aside class="card controls" id="controls">
+    <details open><summary>Scenario</summary>
+      <div class="chips" id="presetChips"></div>
+      <p class="note" id="presetDesc">Pick a preset or shape your own storm below.</p>
+    </details>
+    <details open><summary>Rainfall</summary><div id="c-rain"></div>
+      <p class="note" id="rainStats"></p></details>
+    <details><summary>Rivers and dam</summary><div id="c-river"></div></details>
+    <details><summary>Sea and tide</summary><div id="c-sea"></div></details>
+    <details open><summary>Drainage</summary><div id="c-drain"></div>
+      <p class="note">Tools act on the map. Fail drains paints clogged drainage; Block river drops a debris jam or collapsed embankment across the channel.</p>
+      <div class="chips" id="toolChips"></div>
+      <p class="note" id="toolInfo"></p></details>
+    <details><summary>Warning thresholds</summary><div id="c-th"></div>
+      <p class="note">Depth or hazard rating HR = d·(v+0.5) triggers the level. Changes re-classify instantly, no re-run.</p></details>
+    <details><summary>Terrain</summary><div id="c-terrain"></div>
+      <button class="btn" id="btnRebuild" style="width:100%">Rebuild terrain</button></details>
+    <div class="runbar"><button class="btn pri" id="btnRun">Run simulation</button><div class="prog" id="prog"><i></i></div><p class="note" id="runInfo" style="text-align:center"></p></div>
+  </aside>
+
+  <section class="center">
+    <div class="card">
+      <div class="maptools" id="layerChips"></div>
+      <div class="mapwrap" id="mapwrap"><canvas id="map"></canvas><div class="tip" id="tip"></div><div class="legend" id="legend"></div></div>
+      <div class="timebar">
+        <button class="btn" id="btnPlay" aria-label="Play or pause">Play</button>
+        <input type="range" id="tslider" min="0" max="144" value="0" aria-label="Simulation time">
+        <div class="clock" id="clock"></div>
+        <select id="speed" style="width:74px" aria-label="Playback speed"><option value="1">1×</option><option value="2">2×</option><option value="4">4×</option></select>
+      </div>
+    </div>
+    <div class="card">
+      <div class="tabs" role="tablist" id="tabs">
+        <button class="tab on" data-p="p-time">Timeline</button><button class="tab" data-p="p-scen">Scenarios</button><button class="tab" data-p="p-ai">AI forecast</button><button class="tab" data-p="p-method">Method</button><button class="tab" data-p="p-data">Data</button>
+      </div>
+      <div class="panel on" id="p-time">
+        <div class="grid2">
+          <div class="cbox"><h3>Rainfall and tide</h3><small id="s1"></small><canvas class="ch" id="ch1"></canvas></div>
+          <div class="cbox"><h3>People affected over time</h3><small>Warning level or worse, and critical level</small><canvas class="ch" id="ch3"></canvas></div>
+          <div class="cbox"><h3 id="h2">Selected zone</h3><small>Share of zone area at each level. Dashed line is the zone trigger.</small><canvas class="ch" id="ch2"></canvas></div>
+          <div class="cbox"><h3>River gauge</h3><small>Stage at the main-river gauge against bank-full depth</small><canvas class="ch" id="ch4"></canvas></div>
+        </div>
+        <p class="note" id="massNote"></p>
+      </div>
+      <div class="panel" id="p-scen">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><p class="note" style="margin:0">All five presets plus your custom run, side by side. Click a row to load it on the map.</p><button class="btn" id="btnAll">Run all scenarios</button></div>
+        <div style="overflow:auto;margin-top:8px"><table id="scTable"></table></div>
+        <div class="cbox" style="margin-top:12px"><h3>People affected by scenario</h3><canvas class="ch" id="ch5" style="height:220px"></canvas></div>
+      </div>
+      <div class="panel" id="p-ai">
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><button class="btn" id="btnTrain">Retrain emulator</button><p class="note" id="aiStatus" style="flex:1;margin:0">The emulator trains itself in the background from an ensemble of physics runs.</p></div>
+        <div class="prog" id="aiprog" style="display:block"><i></i></div>
+        <div class="metrics" id="aiMetrics"></div>
+        <div class="grid2">
+          <div class="cbox"><h3>Emulator vs physics</h3><small>Peak zone depth on held-out storms (m)</small><canvas class="ch" id="ch6" style="height:220px"></canvas></div>
+          <div class="cbox"><h3>What drives the risk</h3><small>Permutation importance on held-out storms</small><div class="bars" id="aiImp" style="margin-top:8px"></div></div>
+        </div>
+        <p class="note" id="aiCheck"></p>
+      </div>
+      <div class="panel" id="p-method"><div class="doc" id="methodDoc"></div></div>
+      <div class="panel" id="p-data">
+        <div class="grid2">
+          <div class="cbox"><h3>Elevation model (DEM)</h3><p class="note">Import an Esri ASCII grid or a plain CSV of elevations (rows north to south, west edge toward the sea). Rivers, sea and land use are derived from the DEM.</p>
+            <div class="ctl"><label>Source cell size (m)</label><input type="number" id="demCell" value="90"></div>
+            <input type="file" id="demFile" accept=".asc,.csv,.txt"><div class="chips"><button class="btn" id="btnDemExport">Export current DEM</button></div><p class="note" id="demInfo"></p></div>
+          <div class="cbox"><h3>Rainfall feed</h3><p class="note">Load an hourly rainfall series from a gauge or forecast (one mm value per line, or time,mm). It replaces the storm shape.</p>
+            <input type="file" id="rainFile" accept=".csv,.txt"><div class="chips"><button class="btn" id="btnRainClear">Use storm shape</button></div><p class="note" id="rainInfo"></p></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <aside class="right">
+    <div class="kpis" id="kpis"></div>
+    <div class="card"><div class="zhead"><h2>Early warning</h2><span class="note" id="zsub"></span></div><div class="zones" id="zones"></div></div>
+  </aside>
+</main>
+<div class="modal" id="modal"><div class="box" id="modalBox"></div></div>
+<div class="toast" id="toast"></div>
+<script>
+"use strict";
+
+/* ============ FLOWSHIELD ENGINE (pure JS, no DOM) ============ */
+const G = 9.81;
+const LU = [
+  {id:0,name:'Sea',cn:100,n:0.025,drain:0,pop:0},
+  {id:1,name:'River / backwater',cn:100,n:0.035,drain:0,pop:0},
+  {id:2,name:'Urban',cn:92,n:0.05,drain:25,pop:5200},
+  {id:3,name:'Homestead',cn:80,n:0.07,drain:6,pop:1100},
+  {id:4,name:'Paddy / wetland',cn:88,n:0.08,drain:8,pop:320},
+  {id:5,name:'Plantation',cn:72,n:0.09,drain:1.5,pop:220},
+  {id:6,name:'Forest',cn:60,n:0.12,drain:0,pop:12},
+];
+const clamp=(x,a,b)=>x<a?a:x>b?b:x;
+const sstep=(e0,e1,x)=>{const t=clamp((x-e0)/(e1-e0),0,1);return t*t*(3-2*t);};
+function rng(seed){let a=seed>>>0;return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+function makeNoise(seed){
+  const r=rng(seed),perm=new Uint8Array(512),val=new Float32Array(256);
+  for(let i=0;i<256;i++){perm[i]=i;val[i]=r()*2-1;}
+  for(let i=255;i>0;i--){const j=Math.floor(r()*(i+1));const t=perm[i];perm[i]=perm[j];perm[j]=t;}
+  for(let i=0;i<256;i++)perm[i+256]=perm[i];
+  const fade=t=>t*t*(3-2*t);
+  function n2(x,y){const xi=Math.floor(x),yi=Math.floor(y),xf=x-xi,yf=y-yi,X=xi&255,Y=yi&255;
+    const a=val[perm[perm[X]+Y]],b=val[perm[perm[X+1]+Y]],c=val[perm[perm[X]+Y+1]],d=val[perm[perm[X+1]+Y+1]];
+    const u=fade(xf),v=fade(yf);return(a*(1-u)+b*u)*(1-v)+(c*(1-u)+d*u)*v;}
+  function fbm(x,y,o){o=o||4;let s=0,a=0.5,f=1,n=0;for(let i=0;i<o;i++){s+=a*n2(x*f+i*17.3,y*f+i*9.1);n+=a;a*=0.5;f*=2.03;}return s/n;}
+  return{n2,fbm};
+}
+
+/* ---------- Procedural Kerala-like basin: Ghats (east) -> midland -> lowland/backwaters -> Arabian Sea (west) ---------- */
+const DEFAULT_TERRAIN={seed:11,W:44,H:33,coast:3,relief:450,lowland:0.75,nRivers:3};
+function makeTerrain(P){
+  const {W,H,coast,relief,lowland,nRivers,seed}=P, L=W-coast;
+  const nz=makeNoise(seed),nz2=makeNoise(seed*7+13),nz3=makeNoise(seed+99),r=rng(seed*31+7);
+  const zbase=xl=>relief*Math.pow(xl/L,2.3)+0.35;
+  const mainK=Math.floor(nRivers/2), rivers=[];
+  for(let k=0;k<nRivers;k++){
+    const frac=nRivers===1?0.5:0.2+0.6*k/(nRivers-1);
+    const rv={size:k===mainK?1:0.7,y0:H*frac+(r()-0.5)*2,amp:0.8+r()*1.4,lam:7+r()*6,ph:r()*6.283,tilt:(r()-0.5)*0.16,px:[],py:[],pxl:[]};
+    for(let x=coast;x<=W+0.3;x+=0.2){const xl=x-coast;
+      const y=rv.y0+rv.amp*Math.sin(6.2832*xl/rv.lam+rv.ph)*(0.25+0.75*xl/L)+rv.tilt*xl;
+      rv.px.push(x);rv.py.push(clamp(y,1.2,H-1.2));rv.pxl.push(xl);}
+    rivers.push(rv);
+  }
+  function sample(x,y,dx,o){
+    o.sea=false;o.chan=false;o.lagoon=false;o.k=-1;o.cd=0;o.d=99;o.low=0;o.zfp=0;
+    if(x<coast){o.z=-2.5*Math.pow((coast-x)/coast,0.7);o.sea=true;return o;}
+    const xl=x-coast,zb=zbase(xl),A=1.2+0.11*zb;
+    let zt=zb+A*nz.fbm(x/4.5,y/4.5,4);
+    const rh=1.4+1.2*(nz2.n2(y/2.5,3.3)*0.5+0.5);
+    zt+=rh*Math.exp(-Math.pow((x-(coast+0.55))/0.45,2));
+    const yy=y+2.5*nz3.n2(x/6,1.7);
+    const by=sstep(0.10*H,0.28*H,yy)*(1-sstep(0.62*H,0.88*H,yy));
+    let m=lowland*by*(1-sstep(3,10,xl))*(0.65+0.35*(nz3.n2(x/3,y/3)*0.5+0.5));
+    if(m>0){
+      let zl=0.25+0.3*(nz3.n2(x/2,y/2)*0.5+0.5);
+      if(m>0.45&&nz2.fbm(x/3,y/3,3)>0.12){zl=-2;o.lagoon=true;zt=zl;}else zt=zt*(1-m)+zl*m;
+    }
+    o.low=m;
+    let best=1e9,bk=-1,bi=0;
+    for(let k=0;k<nRivers;k++){const rv=rivers[k];
+      for(let i=0;i<rv.px.length;i++){const ddx=rv.px[i]-x,ddy=rv.py[i]-y,d2=ddx*ddx+ddy*ddy;if(d2<best){best=d2;bk=k;bi=i;}}}
+    const d=Math.sqrt(best),rv=rivers[bk],xr=rv.pxl[bi];
+    const cd=rv.size*(1.5+2.6*Math.pow(xr/L,0.7)),Wv=rv.size*(0.8+2.4*(1-xr/L)),wc=0.9*dx;
+    const zfp=zbase(xr);
+    o.d=d;o.k=bk;o.zfp=zfp;
+    let z=zt;
+    if(d<wc+Wv){const s=sstep(0,1,(d-wc)/Wv);z=zfp*(1-s)+zt*s;
+      if(d<wc){z=zfp-cd+cd*Math.pow(d/wc,4);o.chan=true;o.cd=cd*(1-Math.pow(d/wc,4));o.lagoon=false;}}
+    o.z=z;return o;
+  }
+  return{P,sample,rivers,mainK,noise:nz,noise2:nz2,noise3:nz3,zbase};
+}
+
+/* ---------- World (grid) construction ---------- */
+function buildWorldFromTerrain(T,nx,ny,meta){
+  const P=T.P,dxk=P.W/nx,dx=dxk*1000,N=nx*ny,o={};
+  const w={nx,ny,N,dx,dxk,W:P.W,H:P.H,coast:P.coast,relief:P.relief,
+    z:new Float32Array(N),lu:new Uint8Array(N),chan:new Uint8Array(N),isSea:new Uint8Array(N),
+    n:new Float32Array(N),cn:new Float32Array(N),drain:new Float32Array(N),pop:new Float32Array(N),
+    zone:new Int16Array(N).fill(-1),cd:new Float32Array(N),kr:new Int8Array(N).fill(-1),dr:new Float32Array(N),urb:new Float32Array(N),
+    heads:[],source:'synthetic',mainK:T.mainK,nRivers:P.nRivers};
+  const cities=meta?meta.cities:null;
+  for(let j=0;j<ny;j++)for(let i=0;i<nx;i++){
+    const c=j*nx+i,x=(i+0.5)*dxk,y=(j+0.5)*dxk;T.sample(x,y,dxk,o);
+    w.z[c]=o.z;w.dr[c]=Math.min(o.d,30);
+    let urb=0;if(cities)for(const ct of cities){const dd=((x-ct.x)**2+(y-ct.y)**2)/(ct.rc*ct.rc);urb+=Math.exp(-dd);}
+    w.urb[c]=urb;
+    let lu;
+    if(o.sea){lu=0;w.isSea[c]=1;}
+    else if(o.chan||o.lagoon){lu=1;if(o.chan){w.chan[c]=1;w.cd[c]=o.cd;w.kr[c]=o.k;}}
+    else{
+      const zz=o.z,nn=T.noise2.fbm(x/1.5,y/1.5,3);
+      if(cities&&urb+0.25*nn>0.36&&zz<60)lu=2;
+      else if(zz<2.5&&o.low>0.3)lu=4;
+      else if(o.d<1.4&&zz<12&&T.noise3.fbm(x/2,y/2,3)>0.05)lu=4;
+      else if(zz>0.42*P.relief*(0.85+0.3*T.noise3.fbm(x/3,y/3,3)))lu=6;
+      else if(zz>0.10*P.relief)lu=5;
+      else lu=3;
+    }
+    w.lu[c]=lu;
+  }
+  finishWorld(w,T.noise2);
+  return w;
+}
+function finishWorld(w,noise){
+  const {nx,ny,N,dxk}=w;
+  for(let j=0;j<ny;j++)for(let i=0;i<nx;i++){const c=j*nx+i,L=LU[w.lu[c]];
+    w.n[c]=L.n;w.cn[c]=L.cn;w.drain[c]=L.drain;
+    const v=noise?noise.n2((i+0.5)*dxk*2.3,(j+0.5)*dxk*2.3)*0.5+0.5:0.5;
+    w.pop[c]=L.pop*dxk*dxk*(0.7+0.6*v)*(w.lu[c]===2?(0.8+0.6*Math.min(1,w.urb[c]||1)):1);
+  }
+  w.heads=[];for(let k=0;k<w.nRivers;k++)w.heads.push([]);
+  for(let j=0;j<ny;j++)for(let i=nx-2;i<nx;i++){const c=j*nx+i;if(w.chan[c]&&w.kr[c]>=0&&w.kr[c]<w.nRivers)w.heads[w.kr[c]].push(c);}
+}
+function pickCities(w,r,count){
+  const {nx,ny,dxk,coast}=w,cand=[];
+  for(let j=0;j<ny;j++)for(let i=0;i<nx;i++){const c=j*nx+i;if(w.isSea[c]||w.lu[c]===1)continue;
+    const x=(i+0.5)*dxk,y=(j+0.5)*dxk,z=w.z[c];if(z<1||z>45)continue;
+    const s=Math.exp(-(x-coast)/14)*Math.exp(-w.dr[c]/1.8)*(0.6+0.4*r());cand.push({x,y,s});}
+  cand.sort((a,b)=>b.s-a.s);const out=[];
+  for(const c of cand){if(out.length>=count)break;if(out.every(o=>Math.hypot(o.x-c.x,o.y-c.y)>8))out.push({x:c.x,y:c.y,rc:out.length===0?3.3:1.9+r()*0.6});}
+  return out;
+}
+function makeZoneSeeds(w,K,r){
+  const land=[];for(let c=0;c<w.N;c++)if(!w.isSea[c])land.push([(c%w.nx+0.5)*w.dxk,(Math.floor(c/w.nx)+0.5)*w.dxk]);
+  let seeds=[land[Math.floor(r()*land.length)]];
+  while(seeds.length<K){let bi=0,bd=-1;for(let i=0;i<land.length;i+=3){let md=1e9;for(const s of seeds){const d=(land[i][0]-s[0])**2+(land[i][1]-s[1])**2;if(d<md)md=d;}if(md>bd){bd=md;bi=i;}}seeds.push(land[bi]);}
+  for(let it=0;it<7;it++){const sx=new Float64Array(K),sy=new Float64Array(K),cn=new Float64Array(K);
+    for(const p of land){let b=0,bd=1e9;for(let k=0;k<K;k++){const d=(p[0]-seeds[k][0])**2+(p[1]-seeds[k][1])**2;if(d<bd){bd=d;b=k;}}sx[b]+=p[0];sy[b]+=p[1];cn[b]++;}
+    seeds=seeds.map((s,k)=>cn[k]?[sx[k]/cn[k],sy[k]/cn[k]]:s);}
+  return seeds;
+}
+function assignZones(w,seeds){
+  const K=seeds.length;
+  for(let c=0;c<w.N;c++){if(w.isSea[c]){w.zone[c]=-1;continue;}
+    const x=(c%w.nx+0.5)*w.dxk,y=(Math.floor(c/w.nx)+0.5)*w.dxk;let b=0,bd=1e9;
+    for(let k=0;k<K;k++){const d=(x-seeds[k][0])**2+(y-seeds[k][1])**2;if(d<bd){bd=d;b=k;}}w.zone[c]=b;}
+  const Z=[];for(let k=0;k<K;k++)Z.push({id:k,cx:seeds[k][0],cy:seeds[k][1],cells:0,land:0,pop:0,sz:0,mz:1e9,cn:0,dr:0,drn:0,urb:0,luc:new Array(7).fill(0)});
+  for(let c=0;c<w.N;c++){const k=w.zone[c];if(k<0)continue;const Zk=Z[k];Zk.cells++;Zk.pop+=w.pop[c];Zk.luc[w.lu[c]]++;
+    if(w.lu[c]>=2){Zk.land++;Zk.sz+=w.z[c];if(w.z[c]<Zk.mz)Zk.mz=w.z[c];Zk.cn+=w.cn[c];Zk.dr+=w.dr[c];Zk.drn+=w.drain[c];if(w.lu[c]===2)Zk.urb++;}}
+  for(const Zk of Z){const l=Math.max(1,Zk.land);Zk.area=Zk.cells*w.dxk*w.dxk;Zk.meanZ=Zk.sz/l;Zk.minZ=Zk.mz===1e9?0:Zk.mz;Zk.cnM=Zk.cn/l;Zk.drM=Zk.drn/l;Zk.rdist=Zk.dr/l;Zk.urbF=Zk.urb/l;
+    Zk.cdist=Math.max(0,Zk.cx-w.coast);Zk.dens=Zk.pop/Math.max(0.01,Zk.area);
+    let bl=2,bm=-1;for(let q=2;q<7;q++)if(Zk.luc[q]>bm){bm=Zk.luc[q];bl=q;}Zk.dom=bl;}
+  w.zones=Z;return Z;
+}
+function nameZones(Z,seed){
+  const r=rng(seed*13+5),used=new Set();
+  const pre=['Ka','Cha','Pe','Ko','Man','Ala','Thi','Ku','Ni','Pa','Mu','Va','Ari','Ma','Vai','Ran','Tha','Ede','Aan','Mee','Nedu','Puth','Chen','Vela'];
+  const mid=['','','ra','va','na','li','ka','ma','ni','la'];
+  for(const z of Z){
+    let suf;
+    if(z.meanZ>90)suf=['mala','malai'];else if(z.minZ<1.2&&z.dom===4)suf=['kandam','kayal'];else if(z.urbF>0.3)suf=['puram','ur','nagar'];
+    else if(z.rdist<1.2)suf=['puzha','kadavu'];else if(z.cdist<8)suf=['kara','thura'];else suf=['pally','kulam','mangalam'];
+    let nm,tries=0;do{nm=pre[Math.floor(r()*pre.length)]+mid[Math.floor(r()*mid.length)]+suf[Math.floor(r()*suf.length)];tries++;}while(used.has(nm)&&tries<40);
+    used.add(nm);z.name=nm;
+  }
+}
+function pickLandmarks(w,meta){
+  // gauge and blockage on main river near the metro city
+  const ct=meta.cities&&meta.cities[0]?meta.cities[0]:{x:w.coast+8,y:w.H/2};
+  const mk=w.mainK;let bestG=-1,bg=1e9;
+  for(let c=0;c<w.N;c++){if(!w.chan[c]||w.kr[c]!==mk)continue;const x=(c%w.nx+0.5)*w.dxk,y=(Math.floor(c/w.nx)+0.5)*w.dxk;
+    const d=Math.abs(x-ct.x)*2+Math.abs(y-ct.y)*0.2;if(d<bg){bg=d;bestG=c;}}
+  w.gauge=bestG;
+  const gi=bestG>=0?bestG%w.nx:0,bi=Math.min(w.nx-3,gi+Math.round(2.5/w.dxk));
+  const blk=[];let jc=-1;for(let j=0;j<w.ny;j++){const c=j*w.nx+bi;if(w.chan[c]&&w.kr[c]===mk){jc=j;break;}}
+  if(jc>=0)for(let j=Math.max(0,jc-2);j<=Math.min(w.ny-1,jc+3);j++){const c=j*w.nx+bi;if(!w.isSea[c])blk.push(c);}
+  w.blockCells=blk;
+}
+function makeWorldPair(terrainP,nxF,factor){
+  const T=makeTerrain(terrainP),r=rng(terrainP.seed*5+1);
+  const w0=buildWorldFromTerrain(T,nxF,Math.round(nxF*terrainP.H/terrainP.W),null);
+  const cities=pickCities(w0,r,4);
+  {const rv=T.rivers[T.mainK];const dm=ct=>{let b=1e9;for(let i=0;i<rv.px.length;i++){const d=Math.hypot(rv.px[i]-ct.x,rv.py[i]-ct.y);if(d<b)b=d;}return b;};
+   cities.sort((a,b)=>dm(a)-dm(b));cities[0].rc=3.3;for(let i=1;i<cities.length;i++)cities[i].rc=Math.min(cities[i].rc,2.4);}
+  const meta={cities};
+  const fine=buildWorldFromTerrain(T,nxF,Math.round(nxF*terrainP.H/terrainP.W),meta);
+  meta.seeds=makeZoneSeeds(fine,18,r);
+  const Z=assignZones(fine,meta.seeds);nameZones(Z,terrainP.seed);
+  pickLandmarks(fine,meta);
+  const nxC=Math.round(nxF/factor),coarse=buildWorldFromTerrain(T,nxC,Math.round(nxC*terrainP.H/terrainP.W),meta);
+  const Zc=assignZones(coarse,meta.seeds);Zc.forEach((z,k)=>z.name=Z[k].name);
+  return{T,meta,fine,coarse};
+}
+
+/* ---------- Forcing functions ---------- */
+function shapeFn(s,tau){
+  switch(s){
+    case 'uniform':return 1;
+    case 'front':{const a=0.25,x=tau/a;return x*Math.exp(1-x);}
+    case 'back':{const a=0.25,x=(1-tau)/a;return x*Math.exp(1-x);}
+    case 'double':return Math.min(1,Math.exp(-0.5*Math.pow((tau-0.25)/0.1,2))+Math.exp(-0.5*Math.pow((tau-0.75)/0.1,2)));
+    default:return Math.exp(-0.5*Math.pow((tau-0.5)/0.2,2));
+  }
+}
+function rainRate(sc,t){
+  const r=sc.rain;
+  if(r.series){const i=Math.floor(t);return t<0||i>=r.series.length?0:r.series[i];}
+  let v=r.base;const tau=(t-r.start)/r.dur;if(tau>=0&&tau<=1)v+=r.peak*shapeFn(r.shape,tau);return v;
+}
+function tideLevel(sc,t){const td=sc.tide;return -td.amp*Math.cos(6.2832*t/12.42)+td.surge*Math.exp(-Math.pow((t-td.surgeAt)/6,2));}
+function damFlow(sc,t){const d=sc.dam;if(!d||d.peak<=0)return 0;const a=t-d.start;if(a<0)return 0;if(a<3)return d.peak*a/3;if(a<3+d.hold)return d.peak;if(a<6+d.hold)return d.peak*(1-(a-3-d.hold)/3);return 0;}
+function rainStats(sc,horizon){
+  const n=Math.ceil(horizon),h=new Float64Array(n);let tot=0,pk=0;
+  for(let i=0;i<n;i++){h[i]=rainRate(sc,i+0.5);tot+=h[i];if(h[i]>pk)pk=h[i];}
+  let m24=0;for(let i=0;i<n;i++){let s=0;for(let k=i;k<Math.min(n,i+24);k++)s+=h[k];if(s>m24)m24=s;}
+  return{total:tot,peak:pk,max24:m24,hourly:h,imd:imdClass(m24)};
+}
+function imdClass(mm){if(mm<2.5)return'No rain';if(mm<15.6)return'Light';if(mm<64.5)return'Moderate';if(mm<115.6)return'Heavy';if(mm<204.5)return'Very heavy';return'Extremely heavy';}
+
+function defaultScenario(){return{name:'Custom',
+  rain:{peak:18,dur:24,start:6,shape:'bell',base:1,orog:0.7,series:null},
+  antecedent:50,aup:1800,K:12,riverInit:1.0,initWet:0.1,
+  dam:{peak:0,start:20,hold:12},tide:{amp:0.4,surge:0,surgeAt:30},
+  drainMult:1,failFactor:0.9,failCells:[],blocks:[],blockH:4,horizon:72};}
+function cloneScenario(s){const c=JSON.parse(JSON.stringify(s));if(s.rain.series)c.rain.series=s.rain.series.slice();return c;}
+
+/* ---------- Scenario presets (built from the world so blockage/failure sites are computed, not hard-coded) ---------- */
+function makePresets(w){
+  const base=defaultScenario();
+  const mk=(id,name,desc,f)=>{const s=cloneScenario(base);s.id=id;s.name=name;s.desc=desc;f(s);return s;};
+  const drainable=[];for(let c=0;c<w.N;c++)if((w.lu[c]===2||w.lu[c]===3||w.lu[c]===4)&&w.z[c]<40)drainable.push(c);
+  return[
+    mk('normal','Normal monsoon','Routine June-July spell, drains coping',s=>{s.rain={peak:4,dur:24,start:6,shape:'bell',base:0.4,orog:0.7,series:null};s.antecedent=30;}),
+    mk('heavy','Heavy rainfall','Orange-alert day, wet catchment',s=>{s.rain={peak:14,dur:24,start:6,shape:'bell',base:1,orog:0.7,series:null};s.antecedent=50;}),
+    mk('extreme','Extreme event (2018-like)','Three-day double burst, dam release, storm surge',s=>{s.rain={peak:22,dur:54,start:4,shape:'double',base:2,orog:0.8,series:null};s.antecedent=90;s.dam={peak:1800,start:22,hold:14};s.tide={amp:0.45,surge:0.6,surgeAt:40};s.drainMult=0.85;}),
+    mk('drainfail','Drainage failure','Heavy rain, urban drains clogged',s=>{s.rain={peak:14,dur:24,start:6,shape:'bell',base:1,orog:0.7,series:null};s.antecedent=50;s.drainMult=1;s.failCells=drainable.slice();s.failFactor=0.92;}),
+    mk('blocked','Blocked river channel','Heavy rain, debris jam on the main river',s=>{s.rain={peak:14,dur:24,start:6,shape:'bell',base:1,orog:0.7,series:null};s.antecedent=50;s.blocks=(w.blockCells||[]).slice();s.blockH=8;}),
+  ];
+}
+/* ---------- Simulation core: local-inertial (Bates 2010) 2-D shallow-water + SCS-CN + drainage + tide + upstream inflow ---------- */
+function* simulate(w,sc,opts){
+  opts=opts||{};const t0=Date.now();
+  const {nx,ny,N,dx}=w,dx2=dx*dx,HMIN=1e-3,TH=0.85,HTH=0.5*(1-TH);
+  const frameS=(opts.frameH||0.5)*3600,Tend=sc.horizon*3600,spin=(opts.spinH===undefined?8:opts.spinH)*3600;
+  const z=new Float64Array(N),h=new Float64Array(N),eta=new Float64Array(N),dh=new Float64Array(N),out=new Float64Array(N),scl=new Float64Array(N),rin=new Float64Array(N);
+  for(let c=0;c<N;c++)z[c]=w.z[c];
+  for(const c of sc.blocks)z[c]+=sc.blockH;
+  const nm=w.n,isSea=w.isSea,qx=new Float64Array((nx+1)*ny),qy=new Float64Array(nx*(ny+1));
+  // curve numbers with antecedent moisture interpolation (AMC I -> II -> III)
+  const S=new Float64Array(N),Ia=new Float64Array(N),Pc=new Float64Array(N),Qc=new Float64Array(N),oro=new Float64Array(N),dcap=new Float64Array(N),wLow=new Float64Array(N);
+  const wet=clamp(sc.antecedent/80,0,1);
+  const failSet=new Float32Array(N);for(const c of sc.failCells)failSet[c]=sc.failFactor;
+  for(let c=0;c<N;c++){
+    const c2=w.cn[c];let cn;
+    if(c2>=100)cn=100;else{const c1=4.2*c2/(10-0.058*c2),c3=23*c2/(10+0.13*c2);cn=wet<0.5?c1+(c2-c1)*(wet/0.5):c2+(c3-c2)*((wet-0.5)/0.5);}
+    S[c]=cn>=100?0:25400/cn-254;Ia[c]=0.2*S[c];
+    oro[c]=1+sc.rain.orog*Math.max(0,w.z[c])/w.relief;
+    dcap[c]=w.drain[c]*sc.drainMult*(1-failSet[c])/1000/3600;
+    wLow[c]=clamp((8-w.z[c])/6,0,1);
+  }
+  // initial water
+  const tide0=tideLevel(sc,0);
+  for(let c=0;c<N;c++){
+    if(isSea[c])h[c]=Math.max(0,tide0-z[c]);
+    else if(w.lu[c]===1){h[c]=w.chan[c]?sc.riverInit:Math.max(0,-z[c]);}
+    else if(w.lu[c]===4&&z[c]<3)h[c]=sc.initWet;
+  }
+  // upstream catchments (linear reservoir per river)
+  const nR=w.nRivers,Sres=new Float64Array(nR),Aup=[],Qb=[];
+  for(let k=0;k<nR;k++){const sz=k===w.mainK?1:0.7*0.7*0.6;Aup.push(sc.aup*sz);Qb.push(0.028*Aup[k]*(0.5+0.8*wet));}
+  const mass={rain:0,eff:0,inflow:0,drain:0,sea:0,dam:0};
+  let t=-spin,nextFrame=0,refSet=false,hmax=3,steps=0;
+  const href=new Float32Array(N),T=[],D=[],V=[],tideS=[],rainS=[];
+  let Pdom=0;
+  const surface=()=>{let s=0;for(let c=0;c<N;c++)if(!isSea[c])s+=h[c];return s*dx2;};
+  let store0=0;
+  while(true){
+    if(!refSet&&t>=-1e-6){href.set(h);refSet=true;t=Math.max(t,0);store0=surface();}
+    if(refSet&&t>=nextFrame-1e-6){
+      const d=new Float32Array(N),v=new Float32Array(N);
+      for(let c=0;c<N;c++){d[c]=h[c];const hh=h[c];if(hh>0.03&&!isSea[c]){const i=c%nx,j=(c-i)/nx,f=j*(nx+1)+i;
+        const u=0.5*(qx[f]+qx[f+1])/hh,vv=0.5*(qy[c]+qy[c+nx])/hh;v[c]=Math.min(6,Math.sqrt(u*u+vv*vv));}}
+      T.push(t);D.push(d);V.push(v);
+      const th=t/3600;tideS.push(tideLevel(sc,th));rainS.push(rainRate(sc,th));
+      nextFrame+=frameS;if(t>=Tend-1e-6)break;
+    }
+    const live=refSet;
+    let dt=Math.min(opts.dtMax||120,0.7*dx/Math.sqrt(G*Math.max(hmax,0.05)));
+    const lim=live?nextFrame:0;if(t+dt>lim)dt=lim-t;if(dt<=0)dt=0.5;
+    const tm=(t+dt/2)/3600;
+    // rainfall -> effective rainfall (SCS-CN, cumulative)
+    const pmm=live?rainRate(sc,tm):0;
+    if(pmm>0){const dth=dt/3600;
+      for(let c=0;c<N;c++){if(isSea[c]){rin[c]=0;continue;}
+        const p=pmm*oro[c]*dth;Pc[c]+=p;mass.rain+=p;
+        const e=Pc[c]-Ia[c],Q=e>0?e*e/(e+S[c]):0;rin[c]=(Q-Qc[c])/1000;Qc[c]=Q;}
+      Pdom+=pmm*dth;
+    }else rin.fill(0);
+    for(let c=0;c<N;c++)eta[c]=z[c]+h[c];
+    out.fill(0);
+    for(let j=0;j<ny;j++){const row=j*nx,fr=j*(nx+1);
+      for(let i=1;i<nx;i++){const a=row+i-1,b=row+i,f=fr+i,ea=eta[a],eb=eta[b],za=z[a],zb=z[b];
+        const hf=(ea>eb?ea:eb)-(za>zb?za:zb);
+        if(hf>HMIN){let q=qx[f];if(i>1&&i<nx-1)q=TH*q+HTH*(qx[f-1]+qx[f+1]);
+          const nf=0.5*(nm[a]+nm[b]);
+          q=(q-G*hf*dt*(eb-ea)/dx)/(1+G*dt*nf*nf*Math.abs(q)/(hf*hf*Math.cbrt(hf)));
+          const qm=hf*Math.sqrt(G*hf);if(q>qm)q=qm;else if(q<-qm)q=-qm;
+          qx[f]=q;if(q>0)out[a]+=q;else out[b]-=q;}else qx[f]=0;}}
+    for(let j=1;j<ny;j++){const row=j*nx;
+      for(let i=0;i<nx;i++){const b=row+i,a=b-nx,f=b,ea=eta[a],eb=eta[b],za=z[a],zb=z[b];
+        const hf=(ea>eb?ea:eb)-(za>zb?za:zb);
+        if(hf>HMIN){let q=qy[f];if(j>1&&j<ny-1)q=TH*q+HTH*(qy[f-nx]+qy[f+nx]);
+          const nf=0.5*(nm[a]+nm[b]);
+          q=(q-G*hf*dt*(eb-ea)/dx)/(1+G*dt*nf*nf*Math.abs(q)/(hf*hf*Math.cbrt(hf)));
+          const qm=hf*Math.sqrt(G*hf);if(q>qm)q=qm;else if(q<-qm)q=-qm;
+          qy[f]=q;if(q>0)out[a]+=q;else out[b]-=q;}else qy[f]=0;}}
+    const k1=dt/dx;
+    for(let c=0;c<N;c++){const o=out[c]*k1;scl[c]=o>1e-12?Math.min(1,(h[c]+rin[c])/o):1;}
+    for(let j=0;j<ny;j++){const row=j*nx,fr=j*(nx+1);
+      for(let i=1;i<nx;i++){const f=fr+i;let q=qx[f];if(q!==0){const a=row+i-1,b=a+1;q*=q>0?scl[a]:scl[b];qx[f]=q;const dv=q*k1;dh[a]-=dv;dh[b]+=dv;}}}
+    for(let j=1;j<ny;j++){const row=j*nx;
+      for(let i=0;i<nx;i++){const f=row+i;let q=qy[f];if(q!==0){const b=f,a=f-nx;q*=q>0?scl[a]:scl[b];qy[f]=q;const dv=q*k1;dh[a]-=dv;dh[b]+=dv;}}}
+    // upstream inflow + dam
+    if(nR>0){
+      const rmm=live?rainRate(sc,tm):0,Rc=Math.min(0.85,0.15+0.45*wet+0.35*(1-Math.exp(-Pdom/250)));
+      for(let k=0;k<nR;k++){
+        if(live)Sres[k]+=(Aup[k]*1e6*Rc*rmm*(1+sc.rain.orog*0.9)/1000/3600-Sres[k]/(sc.K*3600))*dt;
+        let Q=Qb[k]+Math.max(0,Sres[k])/(sc.K*3600);
+        if(live&&k===w.mainK){const dq=damFlow(sc,tm);Q+=dq;mass.dam+=dq*dt;}
+        const hd=w.heads[k];if(hd.length){const add=Q*dt/dx2/hd.length;for(const c of hd)dh[c]+=add;if(live)mass.inflow+=Q*dt;}
+      }
+    }
+    const tideZ=tideLevel(sc,live?tm:tm),tf=clamp(tideZ/0.9,0,1);
+    hmax=0.05;let vd=0,vs=0,ve=0;
+    for(let c=0;c<N;c++){let hv=h[c]+dh[c];
+      if(isSea[c]){vs+=dh[c];dh[c]=0;let hn=tideZ-z[c];if(hn<0)hn=0;h[c]=hn;if(hn>hmax)hmax=hn;continue;}
+      dh[c]=0;const r=rin[c];hv+=r;ve+=r;
+      if(live&&hv>1e-5){let dr=dcap[c]*(1-0.6*tf*wLow[c])*dt;if(dr>hv)dr=hv;hv-=dr;vd+=dr;}
+      if(hv<0)hv=0;h[c]=hv;if(hv>hmax)hmax=hv;}
+    if(live){mass.drain+=vd*dx2;mass.sea+=vs*dx2;mass.eff+=ve*dx2;}
+    else{ /* spin-up: track sea exchange so balance starts clean */ }
+    t+=dt;steps++;
+    if(steps%50===0)yield {progress:Math.max(0,t)/Tend};
+  }
+  const storeEnd=surface();
+  mass.rain*=dx2/1000;mass.store0=store0;mass.storeEnd=storeEnd;
+  mass.infil=mass.rain-mass.eff;
+  // mass in: eff rain + river inflow (only live part approximated by total incl. spin-up baseflow) - track separately below
+  return{t:T,depth:D,speed:V,href,tide:tideS,rain:rainS,mass,steps,ms:Date.now()-t0,sc};
+}
+
+/* ---------- Analysis: hazard classification, ETA, zone stats, affected population ---------- */
+function analyze(w,res,th){
+  th=th||{dW:0.15,dC:0.5,share:0.1};
+  const F=res.t.length,N=w.N,K=w.zones.length,HRw=0.75,HRc=1.25;
+  const cls=[],etaC=new Float32Array(N).fill(1e9),etaW=new Float32Array(N).fill(1e9),peakD=new Float32Array(N);
+  const prevC=new Float32Array(N),prevW=new Float32Array(N);
+  const g={popAff:new Float64Array(F),popCrit:new Float64Array(F),areaAff:new Float64Array(F),areaCrit:new Float64Array(F),maxD:new Float64Array(F)};
+  const zn=[];for(let k=0;k<K;k++)zn.push({id:k,fracC:new Float32Array(F),fracW:new Float32Array(F),popAff:new Float64Array(F),popCrit:new Float64Array(F),meanD:new Float32Array(F),etaC:Infinity,etaW:Infinity,peakP90:0,peakMax:0,land:0});
+  const zl=new Int32Array(K),zc=new Float64Array(K),zw=new Float64Array(K),zpa=new Float64Array(K),zpc=new Float64Array(K),zd=new Float64Array(K);
+  for(let c=0;c<N;c++){if(w.zone[c]>=0&&w.lu[c]>=2)zl[w.zone[c]]++;}
+  for(let k=0;k<K;k++)zn[k].land=zl[k];
+  const cellArea=w.dxk*w.dxk;
+  for(let f=0;f<F;f++){
+    const cl=new Uint8Array(N),D=res.depth[f],V=res.speed[f],time=res.t[f]/3600;
+    zc.fill(0);zw.fill(0);zpa.fill(0);zpc.fill(0);zd.fill(0);
+    let pa=0,pc=0,aa=0,ac=0,md=0;
+    for(let c=0;c<N;c++){
+      if(w.lu[c]<2)continue;
+      let d=D[c]-res.href[c];if(d<0.005)d=0;
+      const v=V[c],HR=d*(v+0.5);
+      const Sc=Math.max(d/th.dC,HR/HRc),Sw=Math.max(d/th.dW,HR/HRw);
+      const k=w.zone[c];
+      if(d>peakD[c])peakD[c]=d;
+      if(f>0){
+        if(etaC[c]>=1e9&&Sc>=1){const p=prevC[c];etaC[c]=(res.t[f-1]+(1-p)/(Sc-p)*(res.t[f]-res.t[f-1]))/3600;}
+        if(etaW[c]>=1e9&&Sw>=1){const p=prevW[c];etaW[c]=(res.t[f-1]+(1-p)/(Sw-p)*(res.t[f]-res.t[f-1]))/3600;}
+      }
+      prevC[c]=Sc;prevW[c]=Sw;
+      let q=0;if(Sc>=1)q=2;else if(Sw>=1)q=1;cl[c]=q;
+      if(d>md)md=d;
+      if(k>=0)zd[k]+=d;
+      if(q>=1){pa+=w.pop[c];aa+=cellArea;if(k>=0){zw[k]++;zpa[k]+=w.pop[c];}}
+      if(q===2){pc+=w.pop[c];ac+=cellArea;if(k>=0){zc[k]++;zpc[k]+=w.pop[c];}}
+    }
+    cls.push(cl);g.popAff[f]=pa;g.popCrit[f]=pc;g.areaAff[f]=aa;g.areaCrit[f]=ac;g.maxD[f]=md;
+    for(let k=0;k<K;k++){const Z=zn[k],L=Math.max(1,zl[k]);Z.fracC[f]=zc[k]/L;Z.fracW[f]=zw[k]/L;Z.popAff[f]=zpa[k];Z.popCrit[f]=zpc[k];Z.meanD[f]=zd[k]/L;
+      if(f>0){
+        if(Z.etaC===Infinity&&Z.fracC[f]>=th.share&&zc[k]>0){const p=Z.fracC[f-1],c=Z.fracC[f];Z.etaC=(res.t[f-1]+(th.share-p)/(c-p)*(res.t[f]-res.t[f-1]))/3600;}
+        if(Z.etaW===Infinity&&Z.fracW[f]>=th.share&&zw[k]>0){const p=Z.fracW[f-1],c=Z.fracW[f];Z.etaW=(res.t[f-1]+(th.share-p)/(c-p)*(res.t[f]-res.t[f-1]))/3600;}
+      }}
+  }
+  const lists=Array.from({length:K},()=>[]);
+  for(let c=0;c<N;c++){if(w.lu[c]>=2&&w.zone[c]>=0)lists[w.zone[c]].push(peakD[c]);}
+  for(let k=0;k<K;k++){const a=lists[k].sort((x,y)=>x-y);zn[k].peakP90=a.length?a[Math.floor(0.9*(a.length-1))]:0;zn[k].peakMax=a.length?a[a.length-1]:0;
+    let pk=0,pkC=0;for(let f=0;f<F;f++){if(zn[k].popAff[f]>pk)pk=zn[k].popAff[f];if(zn[k].popCrit[f]>pkC)pkC=zn[k].popCrit[f];}zn[k].peakPop=pk;zn[k].peakPopCrit=pkC;
+    let mx=0;for(let f=0;f<F;f++)mx=Math.max(mx,zn[k].fracC[f]>=th.share?2:zn[k].fracW[f]>=th.share?1:0);zn[k].peakClass=mx;}
+  const sum={peakPopAff:Math.max(...g.popAff),peakPopCrit:Math.max(...g.popCrit),areaAff:Math.max(...g.areaAff),areaCrit:Math.max(...g.areaCrit),maxD:Math.max(...g.maxD),
+    critZones:zn.filter(z=>z.peakClass===2).length,warnZones:zn.filter(z=>z.peakClass===1).length,
+    firstCrit:Math.min(...zn.map(z=>z.etaC)),firstWarn:Math.min(...zn.map(z=>z.etaW))};
+  return{cls,etaC,etaW,peakD,g,zones:zn,sum,th};
+}
+function zoneClassAt(Z,f,th){return Z.fracC[f]>=th.share?2:Z.fracW[f]>=th.share?1:0;}
+
+
+
+/* ---------- Real DEM import: derive sea, rivers, land use, zones from an elevation grid ---------- */
+function parseDEM(text){
+  const t=text.trim();let rows,cols,cell=null,nod=-9999,data;
+  if(/^ncols/i.test(t)){const lines=t.split(/\r?\n/);const h={};let i=0;for(;i<lines.length;i++){const m=lines[i].trim().match(/^([A-Za-z_]+)\s+(\S+)/);if(!m||!/^[A-Za-z_]+$/.test(m[1])||!isNaN(+m[1]))break;h[m[1].toLowerCase()]=+m[2];}
+    cols=h.ncols;rows=h.nrows;if(h.cellsize)cell=h.cellsize;if(h.nodata_value!==undefined)nod=h.nodata_value;
+    data=Float32Array.from(lines.slice(i).join(' ').trim().split(/[\s,;]+/).map(Number));}
+  else{const lines=t.split(/\r?\n/).filter(l=>l.trim().length);const arr=lines.map(l=>l.trim().split(/[,;\s]+/).map(Number));rows=arr.length;cols=arr[0].length;data=new Float32Array(rows*cols);
+    arr.forEach((a,j)=>{for(let i=0;i<cols;i++){const v=a[i];data[j*cols+i]=isNaN(v)?nod:v;}});}
+  if(!rows||!cols||data.length<rows*cols)throw new Error('Could not read a '+cols+'×'+rows+' grid from that file.');
+  for(let i=0;i<data.length;i++)if(data[i]===nod||isNaN(data[i]))data[i]=0;
+  return{rows,cols,data,cell};
+}
+function worldFromDEM(dem,cellM,nx,ny,seeds){
+  const Wkm=dem.cols*cellM/1000,dxk=Wkm/nx,N=nx*ny,r=rng(4242);
+  const w={nx,ny,N,dx:dxk*1000,dxk,W:Wkm,H:ny*dxk,coast:0,relief:1,z:new Float32Array(N),lu:new Uint8Array(N),chan:new Uint8Array(N),isSea:new Uint8Array(N),n:new Float32Array(N),cn:new Float32Array(N),drain:new Float32Array(N),pop:new Float32Array(N),
+    zone:new Int16Array(N).fill(-1),cd:new Float32Array(N),kr:new Int8Array(N).fill(-1),dr:new Float32Array(N),urb:new Float32Array(N),heads:[],source:'dem',mainK:0,nRivers:1};
+  for(let j=0;j<ny;j++)for(let i=0;i<nx;i++){const gx=clamp((i+0.5)*dxk/Wkm*dem.cols-0.5,0,dem.cols-1),gy=clamp((j+0.5)*dxk/(ny*dxk)*dem.rows-0.5,0,dem.rows-1);
+    const i0=gx|0,j0=gy|0,i1=Math.min(dem.cols-1,i0+1),j1=Math.min(dem.rows-1,j0+1),fx=gx-i0,fy=gy-j0,D=dem.data,c=dem.cols;
+    w.z[j*nx+i]=(D[j0*c+i0]*(1-fx)+D[j0*c+i1]*fx)*(1-fy)+(D[j1*c+i0]*(1-fx)+D[j1*c+i1]*fx)*fy;}
+  // sea = low cells connected to the west edge
+  const q=[];for(let j=0;j<ny;j++)if(w.z[j*nx]<=0.3){w.isSea[j*nx]=1;q.push(j*nx);}
+  while(q.length){const c=q.pop(),i=c%nx,j=(c-i)/nx;for(const [a,b] of [[1,0],[-1,0],[0,1],[0,-1]]){const ii=i+a,jj=j+b;if(ii<0||jj<0||ii>=nx||jj>=ny)continue;const d=jj*nx+ii;if(!w.isSea[d]&&w.z[d]<=0.3){w.isSea[d]=1;q.push(d);}}}
+  let maxc=0;for(let c=0;c<N;c++){if(w.isSea[c]&&c%nx>maxc)maxc=c%nx;}w.coast=w.isSea.some(v=>v)?(maxc+1)*dxk:0;
+  let zm=0;for(let c=0;c<N;c++)if(!w.isSea[c]&&w.z[c]>zm)zm=w.z[c];w.relief=Math.max(50,zm);
+  // D8 flow accumulation -> channels
+  const order=[];for(let c=0;c<N;c++)if(!w.isSea[c])order.push(c);order.sort((a,b)=>w.z[b]-w.z[a]);
+  const acc=new Float32Array(N).fill(1);
+  for(const c of order){const i=c%nx,j=(c-i)/nx;let best=-1,bz=w.z[c];
+    for(let a=-1;a<=1;a++)for(let b=-1;b<=1;b++){if(!a&&!b)continue;const ii=i+a,jj=j+b;if(ii<0||jj<0||ii>=nx||jj>=ny)continue;const d=jj*nx+ii;if(w.z[d]<bz){bz=w.z[d];best=d;}}
+    if(best>=0)acc[best]+=acc[c];}
+  const thr=Math.max(20,N*0.007);
+  for(const c of order){if(acc[c]>=thr){w.chan[c]=1;w.kr[c]=0;w.cd[c]=clamp(1.2+0.8*Math.log2(acc[c]/thr+1),1.2,4.5);w.z[c]-=w.cd[c];}}
+  // distance to river (BFS, km)
+  const dist=new Float32Array(N).fill(1e9),qq=[];for(let c=0;c<N;c++)if(w.chan[c]){dist[c]=0;qq.push(c);}
+  for(let h=0;h<qq.length;h++){const c=qq[h],i=c%nx,j=(c-i)/nx;for(const [a,b] of [[1,0],[-1,0],[0,1],[0,-1]]){const ii=i+a,jj=j+b;if(ii<0||jj<0||ii>=nx||jj>=ny)continue;const d=jj*nx+ii;if(dist[d]>dist[c]+1){dist[d]=dist[c]+1;qq.push(d);}}}
+  for(let c=0;c<N;c++)w.dr[c]=Math.min(30,dist[c]*dxk);
+  for(let c=0;c<N;c++){const z=w.z[c];
+    if(w.isSea[c])w.lu[c]=0;else if(w.chan[c])w.lu[c]=1;else if(z<2.5&&w.dr[c]<4)w.lu[c]=4;else if(z>0.42*w.relief)w.lu[c]=6;else if(z>0.10*w.relief)w.lu[c]=5;else w.lu[c]=3;}
+  const cities=pickCities(w,r,3);
+  for(let c=0;c<N;c++){const x=(c%nx+0.5)*dxk,y=(Math.floor(c/nx)+0.5)*dxk;let u=0;cities.forEach((ct,k)=>{const rc=k?2.2:3.3;u+=Math.exp(-((x-ct.x)**2+(y-ct.y)**2)/(rc*rc));});w.urb[c]=u;
+    if(w.lu[c]>=3&&u>0.36&&w.z[c]<60)w.lu[c]=2;}
+  finishWorld(w,null);
+  // river heads: channel cells on the east edge (or the highest channel cells)
+  w.heads=[[]];for(let j=0;j<ny;j++)for(let i=nx-2;i<nx;i++){const c=j*nx+i;if(w.chan[c])w.heads[0].push(c);}
+  if(!w.heads[0].length){const ch=[];for(let c=0;c<N;c++)if(w.chan[c])ch.push(c);ch.sort((a,b)=>w.z[b]-w.z[a]);w.heads[0]=ch.slice(0,3);}
+  return{w,cities};
+}
+function makeWorldPairFromDEM(dem,cellM,nxF,factor){
+  const Wkm=dem.cols*cellM/1000,dxk=Wkm/nxF,ny=Math.max(8,Math.round(dem.rows*cellM/1000/dxk));
+  const a=worldFromDEM(dem,cellM,nxF,ny),fine=a.w,r=rng(9),meta={cities:a.cities};
+  meta.seeds=makeZoneSeeds(fine,18,r);const Z=assignZones(fine,meta.seeds);nameZones(Z,7);pickLandmarks(fine,meta);
+  const nxC=Math.round(nxF/factor),nyC=Math.max(8,Math.round(dem.rows*cellM/1000/(Wkm/nxC)));
+  const coarse=worldFromDEM(dem,cellM,nxC,nyC).w;const Zc=assignZones(coarse,meta.seeds);Zc.forEach((z,k)=>z.name=Z[k].name);
+  return{T:null,meta,fine,coarse};
+}
+function demToCSV(w){const rows=[];for(let j=0;j<w.ny;j++){const a=[];for(let i=0;i<w.nx;i++){const c=j*w.nx+i;a.push((w.z[c]+(w.chan[c]?w.cd[c]:0)).toFixed(1));}rows.push(a.join(','));}return rows.join('\n');}
+
+
+/* ============ FLOWSHIELD AI: physics-trained neural emulator + probabilistic forecast ============ */
+const AI_HORIZON=72;
+const SHAPES=['bell','front','back','double','uniform'];
+function lhs(n,d,r){const cols=[];for(let k=0;k<d;k++){const p=[];for(let i=0;i<n;i++)p.push((i+r())/n);for(let i=n-1;i>0;i--){const j=Math.floor(r()*(i+1));[p[i],p[j]]=[p[j],p[i]];}cols.push(p);}
+  return Array.from({length:n},(_,i)=>cols.map(c=>c[i]));}
+function designToScenario(u){
+  const sc=defaultScenario();
+  const pk=Math.exp(Math.log(2)+u[0]*(Math.log(50)-Math.log(2)));
+  sc.rain={peak:pk,dur:10+u[1]*62,start:2+u[9]*10,shape:SHAPES[Math.min(4,Math.floor(u[2]*5))],base:u[3]*3,orog:0.2+u[8]*0.8,series:null};
+  sc.dam={peak:u[4]<0.35?0:(u[4]-0.35)/0.65*2200,start:8+u[10]*30,hold:6+u[11]*14};
+  sc.tide={amp:0.3+0.3*u[12],surge:u[5]<0.5?0:(u[5]-0.5)*2*1.3,surgeAt:10+u[10]*40};
+  sc.antecedent=u[6]*100;sc.drainMult=0.2+u[7]*1.1;sc.horizon=AI_HORIZON;
+  return sc;
+}
+function scenarioFeatures(sc){
+  const rs=rainStats(sc,AI_HORIZON);
+  return [Math.log(1+rs.total)/Math.log(1+800),rs.peak/40,sc.rain.series?Math.min(1,rs.total/Math.max(1,rs.peak)/72):sc.rain.dur/72,sc.dam.peak/2000,sc.tide.surge/1.2,sc.antecedent/100,sc.drainMult,sc.rain.orog,rs.max24/350];
+}
+const SC_FEAT=['Total rain','Peak intensity','Storm duration','Dam release','Storm surge','Antecedent wetness','Drainage capacity','Orographic gain','Max 24 h rain'];
+function zoneFeatures(w){return w.zones.map(z=>[Math.log1p(Math.max(0,z.meanZ))/6,Math.log1p(Math.max(0,z.minZ))/6,z.cnM/100,z.drM/15,z.rdist/6,z.urbF,z.cdist/40,z.dens/3000]);}
+const Z_FEAT=['Mean elevation','Min elevation','Curve number','Drain capacity','River distance','Urban share','Coast distance','Pop. density'];
+const ALL_FEAT=SC_FEAT.concat(Z_FEAT);
+
+/* ---- tiny MLP with Adam (tanh hidden) ---- */
+function mlpInit(sizes,r){const W=[],B=[];for(let l=0;l<sizes.length-1;l++){const fi=sizes[l],fo=sizes[l+1],w=new Float64Array(fi*fo),s=Math.sqrt(6/(fi+fo));for(let k=0;k<w.length;k++)w[k]=(r()*2-1)*s;W.push(w);B.push(new Float64Array(fo));}
+  return{sizes,W,B,mW:W.map(a=>new Float64Array(a.length)),vW:W.map(a=>new Float64Array(a.length)),mB:B.map(a=>new Float64Array(a.length)),vB:B.map(a=>new Float64Array(a.length)),t:0};}
+function mlpForward(m,x,acts){const L=m.sizes.length-1;let a=x;acts[0]=a;
+  for(let l=0;l<L;l++){const fi=m.sizes[l],fo=m.sizes[l+1],W=m.W[l],B=m.B[l],o=acts[l+1]||(acts[l+1]=new Float64Array(fo));
+    for(let j=0;j<fo;j++){let s=B[j];const off=j*fi;for(let i=0;i<fi;i++)s+=W[off+i]*a[i];o[j]=l<L-1?Math.tanh(s):s;}a=o;}return a;}
+const sig=x=>1/(1+Math.exp(-x));
+function mlpStep(m,batch,lr){ // batch: [{x,y:[crit,logd,eta],mk}]
+  const L=m.sizes.length-1,gW=m.W.map(a=>new Float64Array(a.length)),gB=m.B.map(a=>new Float64Array(a.length));let loss=0;
+  const acts=[];
+  for(const s of batch){const o=mlpForward(m,s.x,acts);
+    const p=sig(o[0]),d=[p-s.y[0],2*(o[1]-s.y[1])*1.0,s.mk?2*(o[2]-s.y[2])*0.5:0];
+    loss+=-(s.y[0]*Math.log(p+1e-9)+(1-s.y[0])*Math.log(1-p+1e-9))+(o[1]-s.y[1])**2+(s.mk?0.5*(o[2]-s.y[2])**2:0);
+    let delta=Float64Array.from(d);
+    for(let l=L-1;l>=0;l--){const fi=m.sizes[l],fo=m.sizes[l+1],a=acts[l];
+      for(let j=0;j<fo;j++){const dj=delta[j];gB[l][j]+=dj;const off=j*fi;for(let i=0;i<fi;i++)gW[l][off+i]+=dj*a[i];}
+      if(l>0){const nd=new Float64Array(fi);for(let i=0;i<fi;i++){let sum=0;for(let j=0;j<fo;j++)sum+=m.W[l][j*fi+i]*delta[j];nd[i]=sum*(1-a[i]*a[i]);}delta=nd;}}}
+  m.t++;const b1=0.9,b2=0.999,n=batch.length,c1=1-Math.pow(b1,m.t),c2=1-Math.pow(b2,m.t);
+  for(let l=0;l<L;l++){for(const [P,G,M,V] of [[m.W[l],gW[l],m.mW[l],m.vW[l]],[m.B[l],gB[l],m.mB[l],m.vB[l]]])
+    for(let k=0;k<P.length;k++){const g=G[k]/n+1e-5*P[k];M[k]=b1*M[k]+(1-b1)*g;V[k]=b2*V[k]+(1-b2)*g*g;P[k]-=lr*(M[k]/c1)/(Math.sqrt(V[k]/c2)+1e-8);}}
+  return loss/n;
+}
+function auc(scores,labels){const idx=scores.map((s,i)=>i).sort((a,b)=>scores[a]-scores[b]);let rs=0,np=0,nn=0;idx.forEach((i,r)=>{if(labels[i]){rs+=r+1;np++;}else nn++;});return np&&nn?(rs-np*(np+1)/2)/(np*nn):NaN;}
+
+/* ---- ensemble generation + training (generator: yields progress) ---- */
+function* trainEmulator(wc,opts){
+  opts=opts||{};const nMem=opts.members||44,r=rng(opts.seed||2024),th=opts.th||{dW:0.15,dC:0.5,share:0.1};
+  const design=lhs(nMem,13,r),zf=zoneFeatures(wc),K=wc.zones.length,rows=[];
+  for(let m=0;m<nMem;m++){
+    const sc=designToScenario(design[m]),g=simulate(wc,sc,{frameH:1,spinH:6,dtMax:150});let it;while(!(it=g.next()).done){yield{stage:'ensemble',progress:(m+it.value.progress)/nMem*0.85,member:m+1,of:nMem};}
+    const an=analyze(wc,it.value,th),sf=scenarioFeatures(sc);
+    for(let k=0;k<K;k++){const Z=an.zones[k];if(Z.land<1)continue;const crit=isFinite(Z.etaC)?1:0;
+      rows.push({m,x:sf.concat(zf[k]),y:[crit,Math.log(0.02+Z.peakP90),Math.min(1,(crit?Z.etaC:AI_HORIZON)/AI_HORIZON)],mk:crit});}
+    yield{stage:'ensemble',progress:(m+1)/nMem*0.85,member:m+1,of:nMem};
+  }
+  const nf=rows[0].x.length,mean=new Float64Array(nf),std=new Float64Array(nf);
+  for(const s of rows)for(let i=0;i<nf;i++)mean[i]+=s.x[i]/rows.length;
+  for(const s of rows)for(let i=0;i<nf;i++)std[i]+=(s.x[i]-mean[i])**2/rows.length;
+  for(let i=0;i<nf;i++)std[i]=Math.sqrt(std[i])+1e-6;
+  for(const s of rows)s.xn=s.x.map((v,i)=>(v-mean[i])/std[i]);
+  const hold=new Set();for(let m=0;m<nMem;m++)if(m%5===2)hold.add(m);
+  const tr=rows.filter(s=>!hold.has(s.m)),va=rows.filter(s=>hold.has(s.m));
+  const model=mlpInit([nf,24,24,3],r),loss=[],valLoss=[];
+  const E=opts.epochs||220;
+  for(let e=0;e<E;e++){
+    for(let i=tr.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[tr[i],tr[j]]=[tr[j],tr[i]];}
+    let el=0,nb=0;for(let b=0;b<tr.length;b+=32){el+=mlpStep(model,tr.slice(b,b+32).map(s=>({x:s.xn,y:s.y,mk:s.mk})),0.006*(1-0.7*e/E));nb++;}
+    loss.push(el/nb);
+    if(e%5===0){let vl=0;const acts=[];for(const s of va){const o=mlpForward(model,s.xn,acts);const p=sig(o[0]);vl+=-(s.y[0]*Math.log(p+1e-9)+(1-s.y[0])*Math.log(1-p+1e-9))+(o[1]-s.y[1])**2;}valLoss.push([e,vl/Math.max(1,va.length)]);}
+    if(e%10===0)yield{stage:'train',progress:0.85+0.15*e/E};
+  }
+  const model_={model,mean,std,nf};
+  const ev=evalModel(model_,va);
+  const imp=permImportance(model_,va);
+  return{model:model_,loss,valLoss,eval:ev,importance:imp,nTrain:tr.length,nVal:va.length,nMem,points:ev.points};
+}
+function predictRow(M,x){const xn=x.map((v,i)=>(v-M.mean[i])/M.std[i]);const o=mlpForward(M.model,xn,[]);return{p:sig(o[0]),depth:Math.max(0,Math.exp(o[1])-0.02),eta:clamp(o[2],0,1)*AI_HORIZON};}
+function evalModel(M,va){
+  let sse=0,sst=0,mean=0;const pts=[];for(const s of va)mean+=s.y[1]/va.length;
+  const sc=[],lb=[];let tp=0,tn=0,fp=0,fn=0,ae=0,ne=0;
+  for(const s of va){const o=mlpForward(M.model,s.xn,[]);const d=Math.exp(o[1])-0.02,dt=Math.exp(s.y[1])-0.02;
+    sse+=(o[1]-s.y[1])**2;sst+=(s.y[1]-mean)**2;pts.push([dt,Math.max(0,d)]);
+    const p=sig(o[0]);sc.push(p);lb.push(s.y[0]);if(p>=0.5&&s.y[0])tp++;else if(p<0.5&&!s.y[0])tn++;else if(p>=0.5)fp++;else fn++;
+    if(s.mk){ae+=Math.abs(o[2]-s.y[2])*AI_HORIZON;ne++;}}
+  return{r2:1-sse/sst,auc:auc(sc,lb),acc:(tp+tn)/va.length,etaMAE:ne?ae/ne:NaN,tp,tn,fp,fn,points:pts};
+}
+function permImportance(M,va){
+  const base=evalLoss(M,va),r=rng(5),imp=[];
+  for(let f=0;f<M.nf;f++){const sh=va.map(s=>s.xn.slice());const col=sh.map(x=>x[f]);for(let i=col.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[col[i],col[j]]=[col[j],col[i]];}
+    sh.forEach((x,i)=>x[f]=col[i]);imp.push(Math.max(0,evalLoss(M,va,sh)-base));}
+  const mx=Math.max(...imp,1e-9);return imp.map((v,i)=>({name:ALL_FEAT[i],v:v/mx,group:i<SC_FEAT.length?'Weather / operations':'Terrain / land'}));
+}
+function evalLoss(M,va,xs){let l=0;for(let i=0;i<va.length;i++){const s=va[i],o=mlpForward(M.model,xs?xs[i]:s.xn,[]);const p=sig(o[0]);l+=-(s.y[0]*Math.log(p+1e-9)+(1-s.y[0])*Math.log(1-p+1e-9))+(o[1]-s.y[1])**2;}return l/va.length;}
+function gauss(r){return Math.sqrt(-2*Math.log(r()+1e-12))*Math.cos(6.2832*r());}
+/* Monte-Carlo forecast: perturb the current scenario (forecast error) and push through the emulator */
+function aiForecast(M,w,sc,n,seed){
+  n=n||300;const r=rng(seed||7),zf=zoneFeatures(w),K=w.zones.length;
+  const acc=Array.from({length:K},()=>({p:0,depth:0,etas:[],cnt:0}));
+  for(let i=0;i<n;i++){
+    const s=cloneScenario(sc),f=Math.exp(0.28*gauss(r));
+    if(s.rain.series)s.rain.series=s.rain.series.map(v=>v*f);else{s.rain.peak*=f;s.rain.base*=f;s.rain.dur*=clamp(1+0.12*gauss(r),0.7,1.3);}
+    s.tide.surge=Math.max(0,s.tide.surge+0.15*gauss(r));s.antecedent=clamp(s.antecedent+12*gauss(r),0,100);
+    s.drainMult=clamp(s.drainMult*(0.85+0.2*r()),0.05,1.5);s.dam.peak=Math.max(0,s.dam.peak*Math.exp(0.2*gauss(r)));
+    const sf=scenarioFeatures(s);
+    for(let k=0;k<K;k++){if(w.zones[k].land<1)continue;const o=predictRow(M,sf.concat(zf[k]));const a=acc[k];a.p+=o.p;a.depth+=o.depth;a.cnt++;if(o.p>0.5)a.etas.push(o.eta);}
+  }
+  const q=(a,p)=>{if(!a.length)return NaN;const s=a.slice().sort((x,y)=>x-y);return s[Math.floor(p*(s.length-1))];};
+  return acc.map(a=>({pCrit:a.cnt?a.p/a.cnt:0,depth:a.cnt?a.depth/a.cnt:0,eta10:q(a.etas,0.1),eta50:q(a.etas,0.5),eta90:q(a.etas,0.9),nCrit:a.etas.length}));
+}
+function aiPointForecast(M,w,sc){const zf=zoneFeatures(w),sf=scenarioFeatures(sc);return w.zones.map((z,k)=>z.land<1?{p:0,depth:0,eta:AI_HORIZON}:predictRow(M,sf.concat(zf[k])));}
+
+/* ============ FLOWSHIELD APP ============ */
+const $=s=>document.querySelector(s);
+const S={tp:Object.assign({},DEFAULT_TERRAIN),pair:null,sc:null,th:{dW:0.25,dC:0.75,share:0.1},results:{},view:'custom',layer:'depth',f:0,playing:false,speed:1,sel:-1,tool:'inspect',
+  ai:null,aiBusy:false,ver:0,presets:[],labels:true,hover:null,dirty:false,running:false,failSet:new Set(),blockSet:new Set(),sliders:[],fineNx:80,probe:-1};
+const W=()=>S.pair.fine;
+const R=()=>S.results[S.view];
+const cssv=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const fmtN=n=>n>=1e6?(n/1e6).toFixed(2)+'M':n>=1e4?Math.round(n/1e3)+'k':n>=1e3?(n/1e3).toFixed(1)+'k':Math.round(n)+'';
+const fmtH=h=>h<1?Math.round(h*60)+' min':h<10?h.toFixed(1)+' h':Math.round(h)+' h';
+const pad=n=>String(n).padStart(2,'0');
+const clockStr=h=>{const d=Math.floor(h/24),hh=Math.floor(h%24),mm=Math.round((h%1)*60);return 'Day '+(d+1)+' · '+pad(hh)+':'+pad(mm%60);};
+function toast(m){const t=$('#toast');t.textContent=m;t.style.display='block';clearTimeout(toast.h);toast.h=setTimeout(()=>t.style.display='none',3200);}
+function drive(gen,onp){return new Promise((res,rej)=>{(function tick(){const t0=performance.now();try{while(performance.now()-t0<22){const r=gen.next();if(r.done){res(r.value);return;}if(onp&&r.value)onp(r.value);}}catch(e){rej(e);return;}setTimeout(tick,0);})();});}
+function setProg(id,p){const el=$(id);el.style.display='block';el.firstElementChild.style.width=Math.round(p*100)+'%';}
+const massErr=r=>{const m=r.res.mass,inn=m.eff+m.inflow;return inn>0?((m.storeEnd-m.store0)-(m.eff+m.inflow-m.drain-m.sea))/inn:0;};
+const CL=()=>[cssv('--safe'),cssv('--warn'),cssv('--crit')];
+
+/* ---------- world + hillshade ---------- */
+function prepMap(){
+  const w=W(),{nx,ny}=w,hs=new Float32Array(w.N),z=w.z,dx=w.dx;
+  for(let j=0;j<ny;j++)for(let i=0;i<nx;i++){const c=j*nx+i,i0=Math.max(0,i-1),i1=Math.min(nx-1,i+1),j0=Math.max(0,j-1),j1=Math.min(ny-1,j+1);
+    const v=((z[j*nx+i0]-z[j*nx+i1])+(z[j0*nx+i]-z[j1*nx+i]))/(2*dx);hs[c]=clamp(0.68+26*v,0.38,1.25);}
+  S.hs=hs;
+  const edges=[];for(let j=0;j<ny;j++)for(let i=0;i<nx;i++){const c=j*nx+i,a=w.zone[c];
+    if(i<nx-1){const b=w.zone[c+1];if(a!==b&&a>=0&&b>=0)edges.push([i+1,j,i+1,j+1,a,b]);}
+    if(j<ny-1){const b=w.zone[c+nx];if(a!==b&&a>=0&&b>=0)edges.push([i,j+1,i+1,j+1,a,b]);}}
+  S.edges=edges;
+}
+function setScenario(sc){S.sc=cloneScenario(sc);S.failSet=new Set(S.sc.failCells);S.blockSet=new Set(S.sc.blocks);}
+function buildWorld(){
+  S.ver++;S.pair=makeWorldPair(S.tp,S.fineNx,S.fineNx/56);prepMap();S.presets=makePresets(W());S.results={};S.ai=null;S.sel=-1;S.probe=-1;S.view='custom';
+}
+
+/* ---------- controls ---------- */
+function addSlider(host,o){
+  const d=document.createElement('div');d.className='ctl';d.innerHTML='<label>'+o.label+'<span></span></label><input type="range" min="'+o.min+'" max="'+o.max+'" step="'+o.step+'">';
+  const inp=d.querySelector('input'),sp=d.querySelector('span');
+  const upd=()=>{sp.textContent=o.fmt?o.fmt(+inp.value):inp.value;};
+  inp.addEventListener('input',()=>{o.set(+inp.value);upd();if(o.kind==='th')onThresh();else if(o.kind!=='terrain')onEdit();});
+  host.appendChild(d);S.sliders.push({sync(){inp.value=o.get();upd();}});
+}
+function addSelect(host,label,opts,get,set){
+  const d=document.createElement('div');d.className='ctl';d.innerHTML='<label>'+label+'</label><select>'+opts.map(o=>'<option value="'+o[0]+'">'+o[1]+'</option>').join('')+'</select>';
+  const sel=d.querySelector('select');sel.addEventListener('change',()=>{set(sel.value);onEdit();});host.appendChild(d);S.sliders.push({sync(){sel.value=get();}});
+}
+function buildControls(){
+  const sc=()=>S.sc,r=$('#c-rain');r.innerHTML='';$('#c-river').innerHTML='';$('#c-sea').innerHTML='';$('#c-drain').innerHTML='';$('#c-th').innerHTML='';$('#c-terrain').innerHTML='';S.sliders=[];
+  addSlider(r,{label:'Peak intensity',min:2,max:60,step:1,fmt:v=>v+' mm/h',get:()=>sc().rain.peak,set:v=>sc().rain.peak=v});
+  addSlider(r,{label:'Storm duration',min:6,max:72,step:1,fmt:v=>v+' h',get:()=>sc().rain.dur,set:v=>sc().rain.dur=v});
+  addSlider(r,{label:'Storm starts at',min:0,max:24,step:1,fmt:v=>'t+'+v+' h',get:()=>sc().rain.start,set:v=>sc().rain.start=v});
+  addSelect(r,'Storm shape',[['bell','Single burst'],['front','Front-loaded'],['back','Back-loaded'],['double','Double burst'],['uniform','Steady']],()=>sc().rain.shape,v=>sc().rain.shape=v);
+  addSlider(r,{label:'Background drizzle',min:0,max:4,step:0.1,fmt:v=>v.toFixed(1)+' mm/h',get:()=>sc().rain.base,set:v=>sc().rain.base=v});
+  addSlider(r,{label:'Ghats rainfall gain',min:0,max:1.2,step:0.05,fmt:v=>'+'+Math.round(v*100)+'%',get:()=>sc().rain.orog,set:v=>sc().rain.orog=v});
+  addSlider(r,{label:'Last 5 days rainfall',min:0,max:120,step:1,fmt:v=>v+' mm',get:()=>sc().antecedent,set:v=>sc().antecedent=v});
+  addSelect(r,'Forecast horizon',[['48','48 hours'],['72','72 hours'],['96','96 hours']],()=>String(sc().horizon),v=>sc().horizon=+v);
+  const rv=$('#c-river');
+  addSlider(rv,{label:'Upstream catchment (main river)',min:300,max:4000,step:50,fmt:v=>v+' km²',get:()=>sc().aup,set:v=>sc().aup=v});
+  addSlider(rv,{label:'River level at start',min:0,max:2.5,step:0.1,fmt:v=>v.toFixed(1)+' m',get:()=>sc().riverInit,set:v=>sc().riverInit=v});
+  addSlider(rv,{label:'Standing water in paddies',min:0,max:0.5,step:0.05,fmt:v=>v.toFixed(2)+' m',get:()=>sc().initWet,set:v=>sc().initWet=v});
+  addSlider(rv,{label:'Dam release (peak)',min:0,max:3500,step:50,fmt:v=>v+' m³/s',get:()=>sc().dam.peak,set:v=>sc().dam.peak=v});
+  addSlider(rv,{label:'Release starts at',min:0,max:48,step:1,fmt:v=>'t+'+v+' h',get:()=>sc().dam.start,set:v=>sc().dam.start=v});
+  addSlider(rv,{label:'Release held for',min:0,max:30,step:1,fmt:v=>v+' h',get:()=>sc().dam.hold,set:v=>sc().dam.hold=v});
+  const se=$('#c-sea');
+  addSlider(se,{label:'Tidal amplitude',min:0.1,max:0.9,step:0.05,fmt:v=>v.toFixed(2)+' m',get:()=>sc().tide.amp,set:v=>sc().tide.amp=v});
+  addSlider(se,{label:'Storm surge',min:0,max:1.8,step:0.1,fmt:v=>v.toFixed(1)+' m',get:()=>sc().tide.surge,set:v=>sc().tide.surge=v});
+  addSlider(se,{label:'Surge peaks at',min:0,max:72,step:1,fmt:v=>'t+'+v+' h',get:()=>sc().tide.surgeAt,set:v=>sc().tide.surgeAt=v});
+  const dr=$('#c-drain');
+  addSlider(dr,{label:'Drainage capacity',min:0,max:200,step:5,fmt:v=>v+'%',get:()=>Math.round(sc().drainMult*100),set:v=>sc().drainMult=v/100});
+  const th=$('#c-th');
+  addSlider(th,{kind:'th',label:'Warning depth',min:0.05,max:0.5,step:0.01,fmt:v=>v.toFixed(2)+' m',get:()=>S.th.dW,set:v=>S.th.dW=Math.min(v,S.th.dC-0.05)});
+  addSlider(th,{kind:'th',label:'Critical depth',min:0.2,max:1.5,step:0.05,fmt:v=>v.toFixed(2)+' m',get:()=>S.th.dC,set:v=>S.th.dC=Math.max(v,S.th.dW+0.05)});
+  addSlider(th,{kind:'th',label:'Zone trigger (share of area)',min:2,max:40,step:1,fmt:v=>v+'%',get:()=>Math.round(S.th.share*100),set:v=>S.th.share=v/100});
+  const te=$('#c-terrain');
+  addSlider(te,{label:'Ghats relief',min:150,max:1200,step:25,fmt:v=>v+' m',get:()=>S.tp.relief,set:v=>S.tp.relief=v,kind:'terrain'});
+  addSlider(te,{label:'Backwater lowland',min:0,max:1,step:0.05,fmt:v=>Math.round(v*100)+'%',get:()=>S.tp.lowland,set:v=>S.tp.lowland=v,kind:'terrain'});
+  addSlider(te,{label:'Rivers',min:1,max:3,step:1,fmt:v=>v,get:()=>S.tp.nRivers,set:v=>S.tp.nRivers=v,kind:'terrain'});
+  addSlider(te,{label:'Terrain seed',min:1,max:60,step:1,fmt:v=>v,get:()=>S.tp.seed,set:v=>S.tp.seed=v,kind:'terrain'});
+  S.sliders.forEach(s=>s.sync());
+  // preset chips
+  const pc=$('#presetChips');pc.innerHTML='';
+  S.presets.forEach(p=>{const b=document.createElement('button');b.className='chip';b.textContent=p.name;b.dataset.id=p.id;b.onclick=()=>loadPreset(p.id);pc.appendChild(b);});
+  const tc=$('#toolChips');tc.innerHTML='';
+  [['inspect','Inspect'],['fail','Fail drains'],['block','Block river'],['erase','Erase']].forEach(t=>{const b=document.createElement('button');b.className='chip tool'+(S.tool===t[0]?' on':'');b.textContent=t[1];b.onclick=()=>{S.tool=t[0];[...tc.children].forEach(x=>x.classList.remove('on'));b.classList.add('on');$('#map').style.cursor=t[0]==='inspect'?'crosshair':'cell';};tc.appendChild(b);});
+  const cl=document.createElement('button');cl.className='chip';cl.textContent='Clear all';cl.onclick=()=>{S.failSet.clear();S.blockSet.clear();syncTools();onEdit();};tc.appendChild(cl);
+  updateRainStats();syncTools();
+}
+function syncTools(){S.sc.failCells=[...S.failSet];S.sc.blocks=[...S.blockSet];$('#toolInfo').textContent=S.failSet.size+' cells with failed drains, '+S.blockSet.size+' cells blocked.';drawMap();}
+function updateRainStats(){const rs=rainStats(S.sc,S.sc.horizon);$('#rainStats').innerHTML='Total <b>'+Math.round(rs.total)+' mm</b> over '+S.sc.horizon+' h. Wettest 24 h: <b>'+Math.round(rs.max24)+' mm</b>, IMD class <b>'+rs.imd+'</b>.'+(S.sc.rain.series?' Using loaded hourly series.':'');}
+function onEdit(){S.dirty=true;$('#btnRun').classList.add('dirty');$('#runInfo').textContent='Inputs changed. Run to update the physics.';updateRainStats();scheduleAiLive();chartsSoon();S.hsel=null;}
+function onThresh(){if(S.ai)$('#aiStatus').innerHTML='Thresholds changed since the emulator was trained. Press Retrain to match them.';for(const k in S.results){const r=S.results[k];r.an=analyze(W(),r.res,S.th);r.aiFc=null;}updatePanels();drawMap();}
+function loadPreset(id){
+  const p=S.presets.find(x=>x.id===id);setScenario(p);S.sc.name='Custom';S.sc.id=id;buildControls();
+  $('#presetDesc').textContent=p.desc;[...$('#presetChips').children].forEach(c=>c.classList.toggle('on',c.dataset.id===id));
+  if(S.results[id]){S.view=id;S.dirty=false;S.f=Math.min(S.f,S.results[id].res.t.length-1);afterView();}else runCustom();
+}
+
+/* ---------- run jobs ---------- */
+async function runCustom(){
+  if(S.running)return;S.running=true;const ver=S.ver,w=W();$('#btnRun').disabled=true;$('#btnRun').textContent='Simulating…';setProg('#prog',0);
+  try{
+    const sc=cloneScenario(S.sc);sc.name='Custom';
+    const res=await drive(simulate(w,sc),p=>setProg('#prog',p.progress));
+    if(ver!==S.ver)return;
+    const an=analyze(w,res,S.th);S.results.custom={res,an,sc,rs:rainStats(sc,sc.horizon),ms:res.ms};
+    S.view='custom';S.dirty=false;S.sel=-1;{let bi=0,bv=0;an.g.popAff.forEach((v,i)=>{if(v>bv){bv=v;bi=i;}});S.f=bi;}
+    $('#btnRun').classList.remove('dirty');$('#runInfo').textContent='Simulated '+res.steps.toLocaleString()+' steps in '+(res.ms/1000).toFixed(1)+' s.';
+    $('#tslider').max=res.t.length-1;afterView();
+  }catch(e){console.error(e);toast('Simulation failed: '+e.message);}
+  finally{S.running=false;$('#btnRun').disabled=false;$('#btnRun').textContent='Run simulation';$('#prog').style.display='none';}
+}
+async function runCompare(){
+  const ver=S.ver,w=W();$('#btnAll').disabled=true;
+  for(const p of S.presets){
+    if(S.results[p.id])continue;if(ver!==S.ver)return;
+    const sc=cloneScenario(p);const res=await drive(simulate(w,sc));if(ver!==S.ver)return;
+    S.results[p.id]={res,an:analyze(w,res,S.th),sc,rs:rainStats(sc,sc.horizon),ms:res.ms};renderScen();
+  }
+  $('#btnAll').disabled=false;
+}
+async function trainAI(){
+  if(S.aiBusy)return;S.aiBusy=true;const ver=S.ver;$('#aiStatus').textContent='Training the emulator: running physics ensemble on the coarse grid…';
+  try{
+    const out=await drive(trainEmulator(S.pair.coarse,{members:40,th:Object.assign({},S.th)}),p=>{setProg('#aiprog',p.progress);$('#aiStatus').textContent=p.stage==='ensemble'?'Ensemble run '+p.member+' of '+p.of+' (random storms, dam releases, surges, drain states)…':'Fitting the neural network…';});
+    if(ver!==S.ver)return;S.ai=out;for(const k in S.results)S.results[k].aiFc=null;
+    $('#aiprog').style.display='none';$('#aiStatus').innerHTML='Emulator ready. It learned from <b>'+out.nMem+'</b> physics runs ('+out.nTrain+' zone samples) and now answers what-if questions in milliseconds.';
+    renderAI();updatePanels();drawMap();
+  }catch(e){console.error(e);$('#aiStatus').textContent='AI training failed: '+e.message;}
+  finally{S.aiBusy=false;}
+}
+let aiLiveT=null;
+function scheduleAiLive(){if(!S.ai)return;clearTimeout(aiLiveT);aiLiveT=setTimeout(()=>{S.liveFc=aiForecast(S.ai.model,W(),S.sc,240,3);S.livePt=aiPointForecast(S.ai.model,W(),S.sc);updatePanels();drawMap();},120);}
+function aiFcFor(){
+  if(!S.ai)return null;
+  if(S.view==='custom'&&S.dirty){if(!S.liveFc)S.liveFc=aiForecast(S.ai.model,W(),S.sc,240,3);return{fc:S.liveFc,live:true};}
+  const r=R();if(!r)return null;if(!r.aiFc)r.aiFc=aiForecast(S.ai.model,W(),r.sc,300,7);return{fc:r.aiFc,live:false};
+}
+function afterView(){
+  const r=R();$('#tslider').max=r.res.t.length-1;if(S.sel<0){let b=0,bp=-1;r.an.zones.forEach((z,k)=>{const s=(z.peakClass*1e7)+z.peakPopCrit+z.peakPop*0.01;if(s>bp){bp=s;b=k;}});S.sel=b;}
+  updatePanels();drawMap();chartsSoon();renderScen();
+}
+
+/* ---------- map rendering ---------- */
+const HYP=[[0,[58,84,100]],[6,[68,106,108]],[60,[100,122,98]],[220,[138,132,104]],[600,[168,156,140]]];
+function lerpc(a,b,t){return[a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t,a[2]+(b[2]-a[2])*t];}
+function hyp(z){for(let i=1;i<HYP.length;i++)if(z<=HYP[i][0]){return lerpc(HYP[i-1][1],HYP[i][1],clamp((z-HYP[i-1][0])/(HYP[i][0]-HYP[i-1][0]),0,1));}return HYP[HYP.length-1][1];}
+function ramp(st,v){if(v<=st[0][0])return st[0][1];for(let i=1;i<st.length;i++)if(v<=st[i][0]){const t=(v-st[i-1][0])/(st[i][0]-st[i-1][0]);const a=st[i-1][1],b=st[i][1];return[a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t,a[2]+(b[2]-a[2])*t,a[3]+(b[3]-a[3])*t];}return st[st.length-1][1];}
+const RAMPS={
+  depth:[[0.03,[110,215,255,0]],[0.12,[110,215,255,0.3]],[0.5,[50,150,255,0.72]],[1.5,[85,85,235,0.86]],[3,[160,60,210,0.94]]],
+  speed:[[0.05,[120,220,255,0]],[0.4,[120,220,255,0.5]],[1.5,[255,220,120,0.8]],[3.5,[255,80,110,0.92]]],
+  eta:[[0,[255,77,109,0.9]],[6,[255,140,60,0.85]],[18,[255,205,80,0.8]],[48,[70,210,190,0.7]]],
+  ai:[[0,[61,220,151,0.16]],[0.5,[255,184,77,0.6]],[1,[255,77,109,0.88]]],
+  pop:[[20,[120,100,255,0]],[300,[120,100,255,0.4]],[1800,[200,120,255,0.7]],[5000,[255,210,240,0.92]]]};
+const LUC=[[14,38,88],[36,110,200],[214,180,120],[150,140,100],[120,180,110],[70,120,80],[34,84,62]];
+const LEG={depth:['0','1.5','3+ m','linear-gradient(90deg,#6ed7ff,#3296ff,#5555eb,#a03cd2)'],speed:['0','2','4+ m/s','linear-gradient(90deg,#78dcff,#ffdc78,#ff506e)'],eta:['now','18 h','48 h+','linear-gradient(90deg,#ff4d6d,#ff8c3c,#ffcd50,#46d2be)'],
+  ai:['0%','50%','100%','linear-gradient(90deg,#3ddc97,#ffb84d,#ff4d6d)'],pop:['0','1,800','5,000+ /km²','linear-gradient(90deg,#241c55,#7864ff,#c878ff,#ffd2f0)'],elev:['0 m','200','450+ m','linear-gradient(90deg,#28404c,#4a5c4e,#68665 4,#80786e)']};
+LEG.elev[3]='linear-gradient(90deg,#28404c,#4a5c4e,#686654,#80786e)';
+function drawMap(){
+  const cv=$('#map');if(!S.pair||!cv)return;const w=W(),{nx,ny}=w,r=R(),sf=3;
+  const cw=cv.clientWidth,ch=cv.clientHeight,dpr=window.devicePixelRatio||1;if(!cw)return;
+  if(cv.width!==Math.round(cw*dpr)||cv.height!==Math.round(ch*dpr)){cv.width=Math.round(cw*dpr);cv.height=Math.round(ch*dpr);}
+  if(!S.off||S.off.width!==nx*sf){S.off=document.createElement('canvas');S.off.width=nx*sf;S.off.height=ny*sf;}
+  const oc=S.off.getContext('2d'),img=oc.createImageData(nx*sf,ny*sf),d=img.data,f=Math.min(S.f,r?r.res.t.length-1:0);
+  const D=r?r.res.depth[f]:null,V=r?r.res.speed[f]:null,href=r?r.res.href:null,cls=r?r.an.cls[f]:null,tNow=r?r.res.t[f]/3600:0,hs=S.hs,layer=S.layer;
+  const dl=new Float32Array(w.N),cf=new Float32Array(w.N);
+  if(r)for(let c=0;c<w.N;c++){if(w.lu[c]>=2){let x=D[c]-href[c];dl[c]=x>0?x:0;}cf[c]=cls[c];}
+  const ai=(layer==='ai'||layer==='risk')?aiFcFor():null,cellA=w.dxk*w.dxk;
+  const bil=(a,gx,gy)=>{gx=clamp(gx,0,nx-1);gy=clamp(gy,0,ny-1);const i0=gx|0,j0=gy|0,i1=Math.min(nx-1,i0+1),j1=Math.min(ny-1,j0+1),fx=gx-i0,fy=gy-j0;
+    return(a[j0*nx+i0]*(1-fx)+a[j0*nx+i1]*fx)*(1-fy)+(a[j1*nx+i0]*(1-fx)+a[j1*nx+i1]*fx)*fy;};
+  for(let py=0;py<ny*sf;py++)for(let px=0;px<nx*sf;px++){
+    const gx=(px+0.5)/sf-0.5,gy=(py+0.5)/sf-0.5,ci=clamp(Math.round(gx),0,nx-1),cj=clamp(Math.round(gy),0,ny-1),c=cj*nx+ci,lu=w.lu[c];
+    let col,o=(py*nx*sf+px)*4;
+    if(lu===0){const dd=r?D[c]:1;col=lerpc([10,26,66],[16,44,98],clamp(dd/2.5,0,1));}
+    else if(lu===1){const st=r?clamp(D[c]/(w.cd[c]+1.2),0,1.2):0.3;col=lerpc([24,86,170],[92,170,255],Math.min(1,st));if(layer==='lu')col=LUC[1];}
+    else{
+      const sh=bil(hs,gx,gy);col=hyp(bil(w.z,gx,gy));const tl=LUC[lu];col=[(col[0]*0.8+tl[0]*0.2)*sh,(col[1]*0.8+tl[1]*0.2)*sh,(col[2]*0.8+tl[2]*0.2)*sh];
+      let ov=null;
+      if(layer==='depth'&&r)ov=ramp(RAMPS.depth,bil(dl,gx,gy));
+      else if(layer==='risk'&&r){const v=bil(cf,gx,gy);ov=v>1.5?[255,77,109,0.86]:v>0.5?lerpc([255,184,77],[255,77,109],clamp(v-1,0,1)).concat(0.78):[61,220,151,0.09+0.4*clamp(v*2,0,1)];}
+      else if(layer==='eta'&&r){const e=r.an.etaC[c];if(e<1e9){const rel=e-tNow;ov=rel<=0?[170,20,55,0.92]:ramp(RAMPS.eta,rel);}}
+      else if(layer==='ai'){const k=w.zone[c];if(ai&&k>=0)ov=ramp(RAMPS.ai,ai.fc[k].pCrit);else ov=[120,120,160,0.12];}
+      else if(layer==='speed'&&r)ov=ramp(RAMPS.speed,bil(V,gx,gy));
+      else if(layer==='lu'){const q=LUC[lu];ov=[q[0],q[1],q[2],0.88];}
+      else if(layer==='pop')ov=ramp(RAMPS.pop,w.pop[c]/cellA);
+      if(ov&&ov[3]>0){const a=ov[3];col=[col[0]*(1-a)+ov[0]*a,col[1]*(1-a)+ov[1]*a,col[2]*(1-a)+ov[2]*a];}
+    }
+    d[o]=col[0];d[o+1]=col[1];d[o+2]=col[2];d[o+3]=255;
+  }
+  oc.putImageData(img,0,0);
+  const c2=cv.getContext('2d');c2.setTransform(dpr,0,0,dpr,0,0);c2.imageSmoothingEnabled=true;c2.imageSmoothingQuality='high';c2.drawImage(S.off,0,0,cw,ch);
+  const px=cw/nx,py=ch/ny;
+  c2.lineWidth=1;c2.strokeStyle='rgba(255,255,255,0.13)';c2.beginPath();
+  for(const e of S.edges){c2.moveTo(e[0]*px,e[1]*py);c2.lineTo(e[2]*px,e[3]*py);}c2.stroke();
+  if(S.sel>=0){c2.strokeStyle='#a99bff';c2.lineWidth=2.4;c2.beginPath();
+    for(const e of S.edges)if(e[4]===S.sel||e[5]===S.sel){c2.moveTo(e[0]*px,e[1]*py);c2.lineTo(e[2]*px,e[3]*py);}
+    // outer boundary of selected zone against sea/edge
+    for(let j=0;j<ny;j++)for(let i=0;i<nx;i++){const c=j*nx+i;if(w.zone[c]!==S.sel)continue;
+      if(i===0||w.zone[c-1]<0){c2.moveTo(i*px,j*py);c2.lineTo(i*px,(j+1)*py);}if(i===nx-1||w.zone[c+1]<0){c2.moveTo((i+1)*px,j*py);c2.lineTo((i+1)*px,(j+1)*py);}
+      if(j===0||w.zone[c-nx]<0){c2.moveTo(i*px,j*py);c2.lineTo((i+1)*px,j*py);}if(j===ny-1||w.zone[c+nx]<0){c2.moveTo(i*px,(j+1)*py);c2.lineTo((i+1)*px,(j+1)*py);}}
+    c2.stroke();}
+  // tool markers
+  c2.fillStyle='rgba(255,150,60,0.75)';for(const c of S.failSet){c2.beginPath();c2.arc(((c%nx)+0.5)*px,(Math.floor(c/nx)+0.5)*py,Math.max(1.2,px*0.16),0,6.283);c2.fill();}
+  c2.strokeStyle='#ff4d6d';c2.lineWidth=2;for(const c of S.blockSet){const x=(c%nx)*px,y=Math.floor(c/nx)*py;c2.strokeRect(x+1,y+1,px-2,py-2);c2.beginPath();c2.moveTo(x+3,y+3);c2.lineTo(x+px-3,y+py-3);c2.moveTo(x+px-3,y+3);c2.lineTo(x+3,y+py-3);c2.stroke();}
+  if(w.gauge>=0){const gx=((w.gauge%nx)+0.5)*px,gy=(Math.floor(w.gauge/nx)+0.5)*py;c2.fillStyle='#fff';c2.strokeStyle='#07071a';c2.lineWidth=1.5;c2.beginPath();c2.moveTo(gx,gy-6);c2.lineTo(gx+5,gy);c2.lineTo(gx,gy+6);c2.lineTo(gx-5,gy);c2.closePath();c2.fill();c2.stroke();}
+  if(S.labels){c2.font='600 11px '+cssv('--sans');c2.textAlign='center';c2.lineJoin='round';const CLc=CL();
+    w.zones.forEach((z,k)=>{if(z.land<3)return;const x=z.cx/w.W*cw,y=z.cy/w.H*ch;let q=0;if(r)q=zoneClassAt(r.an.zones[k],f,S.th);
+      c2.lineWidth=3;c2.strokeStyle='rgba(6,6,24,0.85)';c2.strokeText(z.name,x,y);c2.fillStyle=q===2?'#ff8fa5':q===1?'#ffd08a':'#e6e3ff';c2.fillText(z.name,x,y);});}
+  if(S.hover!=null){const c=S.hover;c2.strokeStyle='#fff';c2.lineWidth=1.2;c2.strokeRect((c%nx)*px,Math.floor(c/nx)*py,px,py);}
+  drawLegend();
+}
+function drawLegend(){
+  const el=$('#legend'),L=S.layer;
+  if(L==='risk'){el.innerHTML='<span class="sw" style="background:#3ddc97"></span>Safe <span class="sw" style="background:#ffb84d;margin-left:8px"></span>Warning <span class="sw" style="background:#ff4d6d;margin-left:8px"></span>Critical';return;}
+  if(L==='lu'){el.innerHTML=LU.slice(2).map((l,i)=>'<span class="sw" style="background:rgb('+LUC[i+2]+')"></span>'+l.name).join('<br>');return;}
+  const g=LEG[L];el.innerHTML='<div>'+({depth:'Flood depth',speed:'Flow speed',eta:'Hours to critical from now',ai:'AI chance of critical',pop:'People per km²',elev:'Elevation'})[L]+'</div><div class="bar" style="background:'+g[3]+'"></div><div class="ends"><span>'+g[0]+'</span><span>'+g[1]+'</span><span>'+g[2]+'</span></div>';
+}
+function cellAt(ev){const cv=$('#map'),b=cv.getBoundingClientRect(),w=W();const i=Math.floor((ev.clientX-b.left)/b.width*w.nx),j=Math.floor((ev.clientY-b.top)/b.height*w.ny);if(i<0||j<0||i>=w.nx||j>=w.ny)return-1;return j*w.nx+i;}
+function tipHtml(c){
+  const w=W(),r=R(),f=Math.min(S.f,r.res.t.length-1),k=w.zone[c],tNow=r.res.t[f]/3600;
+  let s='<b>'+(k>=0?w.zones[k].name:'Arabian Sea')+'</b><br>'+LU[w.lu[c]].name+' · '+w.z[c].toFixed(1)+' m';
+  if(w.lu[c]>=2){const d=Math.max(0,r.res.depth[f][c]-r.res.href[c]),v=r.res.speed[f][c],q=r.an.cls[f][c];
+    s+='<br>Depth now <b>'+d.toFixed(2)+' m</b>, '+v.toFixed(1)+' m/s<br>Level: <b style="color:'+CL()[q]+'">'+['Safe','Warning','Critical'][q]+'</b><br>Peak depth '+r.an.peakD[c].toFixed(2)+' m<br>People here ≈ '+Math.round(w.pop[c]);
+    const e=r.an.etaC[c];s+='<br>Critical: '+(e<1e9?(e<=tNow?'reached at t+'+e.toFixed(1)+' h':'in '+fmtH(e-tNow)):'not expected');}
+  else if(w.lu[c]===1)s+='<br>Water depth '+r.res.depth[f][c].toFixed(2)+' m (bank-full ≈ '+w.cd[c].toFixed(1)+' m)';
+  return s;
+}
+function paintTool(c,down){
+  const w=W(),{nx}=w,ci=c%nx,cj=Math.floor(c/nx);let ch=false;
+  const rad=S.tool==='block'?1.6:S.tool==='fail'?2.4:2.4;
+  for(let j=Math.floor(cj-rad);j<=cj+rad;j++)for(let i=Math.floor(ci-rad);i<=ci+rad;i++){if(i<0||j<0||i>=nx||j>=w.ny)continue;if((i-ci)**2+(j-cj)**2>rad*rad)continue;const q=j*nx+i;
+    if(S.tool==='fail'&&w.lu[q]>=2&&!S.failSet.has(q)){S.failSet.add(q);ch=true;}
+    else if(S.tool==='block'&&!w.isSea[q]&&!S.blockSet.has(q)){S.blockSet.add(q);ch=true;}
+    else if(S.tool==='erase'&&(S.failSet.delete(q)|S.blockSet.delete(q)))ch=true;}
+  if(ch){S.sc.blockH=Math.max(S.sc.blockH,8);syncTools();onEdit();}
+}
+function bindMap(){
+  const cv=$('#map'),tip=$('#tip');let down=false;
+  cv.addEventListener('pointermove',e=>{const c=cellAt(e);if(c<0)return;if(c!==S.hover){S.hover=c;if(down&&(S.tool==='fail'||S.tool==='erase'))paintTool(c);else drawMap();}
+    if(R()){tip.innerHTML=tipHtml(c);tip.style.display='block';const b=cv.getBoundingClientRect(),x=e.clientX-b.left,y=e.clientY-b.top;tip.style.left=Math.min(b.width-190,x+14)+'px';tip.style.top=Math.max(4,Math.min(b.height-150,y+10))+'px';}});
+  cv.addEventListener('pointerleave',()=>{tip.style.display='none';S.hover=null;drawMap();down=false;});
+  cv.addEventListener('pointerdown',e=>{const c=cellAt(e);if(c<0)return;down=true;
+    if(S.tool==='inspect'){const k=W().zone[c];if(k>=0){S.sel=k;S.probe=c;updatePanels();drawMap();chartsSoon();}}else paintTool(c,true);});
+  window.addEventListener('pointerup',()=>down=false);
+}
+
+/* ---------- charts ---------- */
+const niceMax=v=>{if(v<=0)return 1;const e=Math.pow(10,Math.floor(Math.log10(v))),m=v/e;return(m<=1?1:m<=2?2:m<=2.5?2.5:m<=5?5:10)*e;};
+function chart(cv,cfg){
+  const dpr=window.devicePixelRatio||1,Wd=cv.clientWidth,Ht=cv.clientHeight;if(!Wd||!Ht)return;
+  cv.width=Math.round(Wd*dpr);cv.height=Math.round(Ht*dpr);const c=cv.getContext('2d');c.setTransform(dpr,0,0,dpr,0,0);c.clearRect(0,0,Wd,Ht);
+  const mut=cssv('--mut'),line=cssv('--line'),ink=cssv('--ink'),ax2=cfg.series.some(s=>s.axis===2),L=40,Rr=ax2?40:10,T=22,B=20,pw=Wd-L-Rr,ph=Ht-T-B;
+  const ym=[0,0],yl=[0,0];for(const s of cfg.series){const a=(s.axis||1)-1;for(const v of s.y){if(v>ym[a])ym[a]=v;if(v<yl[a])yl[a]=v;}}for(const m of cfg.marks||[]){const a=(m.axis||1)-1;if(m.y>ym[a])ym[a]=m.y;}
+  ym[0]=cfg.ymax1||niceMax(ym[0]*1.05);ym[1]=cfg.ymax2||niceMax(ym[1]*1.05);yl[0]=yl[0]<0?-niceMax(-yl[0]*1.05):0;yl[1]=yl[1]<0?-niceMax(-yl[1]*1.05):0;const xm=cfg.xMax,X=x=>L+x/xm*pw,Y=(y,a)=>T+ph-(y-yl[a||0])/(ym[a||0]-yl[a||0])*ph;
+  c.font='11px '+cssv('--sans');c.textBaseline='middle';c.lineWidth=1;
+  for(let i=0;i<=4;i++){const yy=T+ph*i/4;c.strokeStyle=line;c.beginPath();c.moveTo(L,yy);c.lineTo(L+pw,yy);c.stroke();c.fillStyle=mut;c.textAlign='right';{const v0=yl[0]+(ym[0]-yl[0])*(4-i)/4;c.fillText(cfg.f1?cfg.f1(v0):+v0.toPrecision(2),L-5,yy);}
+    if(ax2){c.textAlign='left';c.fillText(+(yl[1]+(ym[1]-yl[1])*(4-i)/4).toPrecision(2),L+pw+5,yy);}}
+  c.textAlign='center';const stepX=xm>60?24:12;for(let x=0;x<=xm;x+=stepX){c.fillStyle=mut;c.fillText(x+'h',X(x),Ht-8);}
+  for(const s of cfg.series){const a=(s.axis||1)-1;c.strokeStyle=s.color;c.fillStyle=s.color;c.lineWidth=s.width||2;
+    if(s.type==='bar'){const bw=Math.max(1,pw/s.y.length*0.9);s.y.forEach((v,i)=>{c.globalAlpha=0.75;c.fillRect(X(s.x[i])-bw/2,Y(v,a),bw,Y(Math.max(0,yl[a]),a)-Y(v,a));});c.globalAlpha=1;}
+    else{c.beginPath();s.y.forEach((v,i)=>{const px=X(s.x[i]),py=Y(v,a);i?c.lineTo(px,py):c.moveTo(px,py);});
+      if(s.type==='area'){c.stroke();c.lineTo(X(s.x[s.x.length-1]),Y(yl[a],a));c.lineTo(X(s.x[0]),Y(yl[a],a));c.closePath();c.globalAlpha=0.18;c.fill();c.globalAlpha=1;}else c.stroke();}}
+  for(const m of cfg.marks||[]){c.strokeStyle=m.color;c.lineWidth=1.2;c.setLineDash([5,4]);const yy=Y(m.y,(m.axis||1)-1);c.beginPath();c.moveTo(L,yy);c.lineTo(L+pw,yy);c.stroke();c.setLineDash([]);if(m.label){c.fillStyle=m.color;c.textAlign='right';c.fillText(m.label,L+pw-3,yy-7);}}
+  if(cfg.cursor!=null){c.strokeStyle=cssv('--vio');c.lineWidth=1.5;c.beginPath();c.moveTo(X(cfg.cursor),T);c.lineTo(X(cfg.cursor),T+ph);c.stroke();}
+  let lx=L+4;c.textAlign='left';c.font='11px '+cssv('--sans');for(const s of cfg.series){if(!s.label)continue;c.fillStyle=s.color;c.fillRect(lx,7,9,9);c.fillStyle=ink;c.fillText(s.label,lx+13,12);lx+=c.measureText(s.label).width+28;}
+}
+const smooth=a=>a.map((v,i)=>{const p=a[Math.max(0,i-1)],n=a[Math.min(a.length-1,i+1)];return(p+v+n)/3;});
+function scatter(cv,pts){
+  const dpr=window.devicePixelRatio||1,Wd=cv.clientWidth,Ht=cv.clientHeight;if(!Wd)return;cv.width=Wd*dpr;cv.height=Ht*dpr;const c=cv.getContext('2d');c.setTransform(dpr,0,0,dpr,0,0);
+  const mx=niceMax(Math.max(0.5,...pts.map(p=>Math.max(p[0],p[1])))*1.05),L=36,B=22,T=8,R=10,pw=Wd-L-R,ph=Ht-T-B,X=v=>L+v/mx*pw,Y=v=>T+ph-v/mx*ph;
+  c.strokeStyle=cssv('--line');c.strokeRect(L,T,pw,ph);c.setLineDash([4,4]);c.strokeStyle=cssv('--mut');c.beginPath();c.moveTo(X(0),Y(0));c.lineTo(X(mx),Y(mx));c.stroke();c.setLineDash([]);
+  c.fillStyle=cssv('--vio');c.globalAlpha=0.7;for(const p of pts){c.beginPath();c.arc(X(p[0]),Y(p[1]),3,0,6.283);c.fill();}c.globalAlpha=1;
+  c.fillStyle=cssv('--mut');c.font='11px '+cssv('--sans');c.textAlign='center';c.fillText('physics peak depth (m) →',L+pw/2,Ht-6);c.save();c.translate(10,T+ph/2);c.rotate(-Math.PI/2);c.fillText('emulator (m)',0,0);c.restore();
+  c.textAlign='right';c.fillText(mx,L-4,T+6);c.fillText('0',L-4,T+ph);
+}
+let chartRaf=0;function chartsSoon(){cancelAnimationFrame(chartRaf);chartRaf=requestAnimationFrame(drawCharts);}
+const PAL=['#a99bff','#3ddc97','#ffb84d','#ff4d6d','#4fc3ff','#f78bd6'];
+function drawCharts(){
+  const r=R(),w=W();if(!r)return;
+  if($('#p-time').classList.contains('on')){
+    const T=r.res.t.map(t=>t/3600),f=Math.min(S.f,T.length-1),cur=T[f],hz=r.sc.horizon;
+    $('#s1').textContent='Domain-mean rain before Ghats gain. Tide includes surge.'+(S.dirty&&S.view==='custom'?' (Showing last run.)':'');
+    chart($('#ch1'),{xMax:hz,series:[{x:T,y:r.res.rain,color:cssv('--water'),type:'bar',label:'rain mm/h'},{x:T,y:r.res.tide,color:cssv('--warn'),axis:2,label:'sea level m'}],cursor:cur});
+    chart($('#ch3'),{xMax:hz,f1:v=>fmtN(v),series:[{x:T,y:Array.from(r.an.g.popAff),color:cssv('--warn'),type:'area',label:'warning or worse'},{x:T,y:Array.from(r.an.g.popCrit),color:cssv('--crit'),type:'area',label:'critical'}],cursor:cur});
+    const k=S.sel,Z=k>=0?r.an.zones[k]:null;$('#h2').textContent=k>=0?w.zones[k].name:'Selected zone';
+    if(Z)chart($('#ch2'),{xMax:hz,ymax1:100,series:[{x:T,y:Array.from(Z.fracW,v=>v*100),color:cssv('--warn'),type:'area',label:'warning or worse %'},{x:T,y:Array.from(Z.fracC,v=>v*100),color:cssv('--crit'),type:'area',label:'critical %'}],marks:[{y:S.th.share*100,color:cssv('--vio'),label:'trigger'}],cursor:cur});
+    const g=w.gauge;if(g>=0)chart($('#ch4'),{xMax:hz,series:[{x:T,y:smooth(r.res.depth.map(d=>d[g])),color:cssv('--water'),type:'area',label:'stage m'}],marks:[{y:w.cd[g],color:cssv('--crit'),label:'bank-full'}],cursor:cur});
+    const me=massErr(r);$('#massNote').innerHTML='Water balance check: rainfall runoff + river inflow − drainage − sea outflow vs change in storage closes to <b>'+(Math.abs(me)*100).toFixed(3)+'%</b>. Infiltrated: '+(r.res.mass.infil/1e6).toFixed(0)+' million m³ of '+(r.res.mass.rain/1e6).toFixed(0)+' million m³ rain.';
+  }
+  if($('#p-scen').classList.contains('on'))drawScenChart();
+}
+function drawScenChart(){
+  const keys=['custom'].concat(S.presets.map(p=>p.id)).filter(k=>S.results[k]);const ser=keys.map((k,i)=>({x:S.results[k].res.t.map(t=>t/3600),y:Array.from(S.results[k].an.g.popAff),color:PAL[i%PAL.length],label:k==='custom'?'Custom':({normal:'Normal',heavy:'Heavy',extreme:'Extreme',drainfail:'Drain fail',blocked:'Blocked'})[k]||k}));
+  if(ser.length)chart($('#ch5'),{xMax:Math.max(...keys.map(k=>S.results[k].sc.horizon)),f1:v=>fmtN(v),series:ser});
+}
+
+/* ---------- panels ---------- */
+function zoneState(r,k,f){const Z=r.an.zones[k],q=zoneClassAt(Z,f,S.th),tNow=r.res.t[f]/3600;return{q,rel:isFinite(Z.etaC)?Z.etaC-tNow:Infinity,relW:isFinite(Z.etaW)?Z.etaW-tNow:Infinity};}
+function updatePanels(){
+  const r=R();if(!r)return;const w=W(),f=Math.min(S.f,r.res.t.length-1),an=r.an,tNow=r.res.t[f]/3600,CLc=CL();
+  $('#clock').innerHTML='<b>'+clockStr(tNow)+'</b><br>t = '+tNow.toFixed(1)+' h of '+r.sc.horizon+' h';$('#tslider').value=f;
+  // kpis
+  const st=w.zones.map((z,k)=>Object.assign({k},zoneState(r,k,f)));
+  const nowC=st.filter(s=>s.q===2).length,fut=st.filter(s=>s.q<2&&s.rel>0&&isFinite(s.rel)).sort((a,b)=>a.rel-b.rel)[0];
+  const lead=fut?fut:null,scenName=S.view==='custom'?'Custom run':S.presets.find(p=>p.id===S.view).name;
+  $('#kpis').innerHTML=
+   kpi(fmtN(an.g.popAff[f]),'People affected now','peak '+fmtN(an.sum.peakPopAff))+
+   kpi('<span style="color:var(--crit)">'+fmtN(an.g.popCrit[f])+'</span>','At critical level now','peak '+fmtN(an.sum.peakPopCrit))+
+   kpi(lead?fmtH(lead.rel):(nowC?'now':'None'),'Next zone to turn critical',lead?w.zones[lead.k].name:(nowC?nowC+' zones already critical':'within '+r.sc.horizon+' h'))+
+   kpi(an.g.areaAff[f].toFixed(0)+' km²','Flooded area now','peak '+an.sum.areaAff.toFixed(0)+' km²')+
+   kpi(an.g.maxD[f].toFixed(2)+' m','Deepest water now','peak '+an.sum.maxD.toFixed(2)+' m')+
+   kpi(r.rs.imd,'Rain class (IMD)',Math.round(r.rs.max24)+' mm in wettest 24 h');
+  // alert bar
+  const bar=$('#alertbar');
+  const anyC=nowC>0;
+  if(anyC){bar.className='alertbar crit';bar.innerHTML='<span class="dot"></span><span><b>Red alert.</b> '+nowC+' zone'+(nowC>1?'s are':' is')+' at critical level now, '+fmtN(an.g.popCrit[f])+' people in critical cells. <span style="color:var(--mut)">Viewing: '+scenName+'.</span></span>';}
+  else if(lead&&lead.rel<=48){const z=w.zones[lead.k],pp=an.zones[lead.k].peakPopCrit;bar.className='alertbar '+(lead.rel<12?'crit':'warn');bar.innerHTML='<span class="dot"></span><span><b>'+(lead.rel<12?'Red alert.':'Orange alert.')+'</b> '+z.name+' is expected to reach critical level in '+fmtH(lead.rel)+', about '+fmtN(pp)+' people in the critical footprint. <span style="color:var(--mut)">Viewing: '+scenName+'.</span></span>';}
+  else if(an.sum.critZones>0){bar.className='alertbar warn';bar.innerHTML='<span class="dot"></span><span><b>Orange alert.</b> '+an.sum.critZones+' zone'+(an.sum.critZones>1?'s reach':' reaches')+' critical level during this scenario (up to '+fmtN(an.sum.peakPopCrit)+' people in critical cells); none is critical at this moment. <span style="color:var(--mut)">Viewing: '+scenName+'.</span></span>';}
+  else if(an.g.popAff[f]>0||an.sum.peakPopAff>0){bar.className='alertbar warn';bar.innerHTML='<span class="dot"></span><span><b>Yellow alert.</b> Shallow flooding possible ('+fmtN(an.sum.peakPopAff)+' people at peak) but no zone reaches critical level. <span style="color:var(--mut)">Viewing: '+scenName+'.</span></span>';}
+  else{bar.className='alertbar safe';bar.innerHTML='<span class="dot"></span><span><b>Green.</b> No flood risk expected in this scenario. <span style="color:var(--mut)">Viewing: '+scenName+'.</span></span>';}
+  // zones
+  const aif=aiFcFor();
+  st.sort((a,b)=>(b.q-a.q)||((a.rel>0?a.rel:-1)-(b.rel>0?b.rel:-1))||(an.zones[b.k].peakPop-an.zones[a.k].peakPop));
+  const order=st.slice().sort((a,b)=>{const ka=a.q*1e3+(isFinite(a.rel)?500-Math.min(500,Math.max(0,a.rel)):0)+an.zones[a.k].peakPop/1e6,kb=b.q*1e3+(isFinite(b.rel)?500-Math.min(500,Math.max(0,b.rel)):0)+an.zones[b.k].peakPop/1e6;return kb-ka;});
+  let html='';
+  for(const s of order){const z=w.zones[s.k],Z=an.zones[s.k],name=z.name;if(z.land<1)continue;
+    let sub;if(s.q===2)sub='<b style="color:var(--crit)">Critical</b> now';else if(s.q===1)sub='<b style="color:var(--warn)">Warning</b>'+(isFinite(s.rel)&&s.rel>0?' · critical in '+fmtH(s.rel):(Z.peakClass===2?' · critical earlier':''));
+    else sub=isFinite(s.rel)&&s.rel>0?'Safe now · <b style="color:var(--crit)">critical in '+fmtH(s.rel)+'</b>':isFinite(s.relW)&&s.relW>0?'Safe now · warning in '+fmtH(s.relW):(Z.peakClass>0?'Safe again':'Safe');
+    let ai='';if(aif){const p=aif.fc[s.k].pCrit;ai='<small>'+(aif.live?'AI preview ':'AI ')+Math.round(p*100)+'% critical</small>';}
+    html+='<div class="row'+(s.k===S.sel?' sel':'')+'" tabindex="0" data-k="'+s.k+'"><span class="pill" style="background:'+CLc[s.q]+'"></span><div><div class="n">'+name+'</div><div class="s">'+sub+' · '+z.meanZ.toFixed(0)+' m</div></div><div class="p">'+fmtN(Z.popAff[f])+ai+'</div></div>';}
+  $('#zones').innerHTML=evacHtml(r,f)+html;
+  $('#zsub').textContent='people affected · '+w.zones.filter(z=>z.land>0).length+' zones';
+}
+const kpi=(v,l,s)=>'<div class="kpi"><div class="v">'+v+'</div><div class="l">'+l+'</div><div class="s">'+s+'</div></div>';
+function compass(dx,dy){const a=Math.atan2(-dy,dx)*180/Math.PI;const n=['east','north-east','north','north-west','west','south-west','south','south-east'];return n[Math.round(((a+360)%360)/45)%8];}
+function evacHtml(r,f){
+  const w=W(),k=S.sel;if(k<0)return'';const Z=r.an.zones[k],z=w.zones[k];if(Z.peakClass<1||z.meanZ>150)return'';
+  let best=-1,bd=1e9;w.zones.forEach((q,j)=>{if(j===k||q.land<3)return;const A=r.an.zones[j];if(A.peakClass>0||q.meanZ<z.meanZ+6)return;const d=Math.hypot(q.cx-z.cx,q.cy-z.cy);if(d<bd){bd=d;best=j;}});
+  if(best<0)return'<div class="evac"><b>'+z.name+'</b>: no dry zone found nearby in this scenario. Coordinate relief camps regionally.</div>';
+  const q=w.zones[best];return'<div class="evac"><b>'+z.name+'</b> evacuation: move about '+bd.toFixed(1)+' km '+compass(q.cx-z.cx,q.cy-z.cy)+' to higher, dry ground near <b>'+q.name+'</b> ('+q.meanZ.toFixed(0)+' m, stays safe in this scenario). About '+fmtN(Z.peakPop)+' people are affected at peak.</div>';
+}
+function renderScen(){
+  const keys=['custom'].concat(S.presets.map(p=>p.id));
+  let h='<tr><th>Scenario</th><th>Rain</th><th>People affected</th><th>Critical people</th><th>Critical zones</th><th>First critical</th><th>Area km²</th><th>Deepest</th></tr>';
+  for(const k of keys){const nm=k==='custom'?'Custom (your inputs)':S.presets.find(p=>p.id===k).name,r=S.results[k];
+    if(!r){h+='<tr><td>'+nm+'</td><td colspan="7" style="text-align:left;color:var(--dim)">'+(k==='custom'?'Run the simulation':'Queued…')+'</td></tr>';continue;}
+    const a=r.an.sum;h+='<tr class="clk'+(S.view===k?' on':'')+'" data-k="'+k+'"><td>'+nm+'</td><td>'+Math.round(r.rs.total)+' mm · '+r.rs.imd+'</td><td>'+fmtN(a.peakPopAff)+'</td><td>'+fmtN(a.peakPopCrit)+'</td><td>'+a.critZones+'</td><td>'+(isFinite(a.firstCrit)?'t+'+a.firstCrit.toFixed(1)+' h':'none')+'</td><td>'+a.areaAff.toFixed(0)+'</td><td>'+a.maxD.toFixed(2)+' m</td></tr>';}
+  $('#scTable').innerHTML=h;if($('#p-scen').classList.contains('on'))drawScenChart();
+}
+function renderAI(){
+  const A=S.ai;if(!A)return;const e=A.eval;
+  $('#aiMetrics').innerHTML='<div><b>'+(e.r2).toFixed(2)+'</b><span>R² on peak depth (held-out storms)</span></div><div><b>'+(e.auc).toFixed(2)+'</b><span>AUC for critical yes/no</span></div><div><b>'+Math.round(e.acc*100)+'%</b><span>critical-zone accuracy</span></div><div><b>'+(isNaN(e.etaMAE)?'–':e.etaMAE.toFixed(1)+' h')+'</b><span>mean error in time to critical</span></div>';
+  const imp=A.importance.slice().sort((a,b)=>b.v-a.v).slice(0,10);
+  $('#aiImp').innerHTML=imp.map(i=>'<div class="b"><span>'+i.name+'</span><i class="'+(i.group[0]==='W'?'':'t')+'" style="width:'+Math.round(i.v*100)+'%"></i><span>'+Math.round(i.v*100)+'</span></div>').join('')+'<p class="note"><span class="sw" style="background:var(--vio2)"></span>weather and operations <span class="sw" style="background:var(--water);margin-left:8px"></span>terrain and land</p>';
+  drawAIscatter();updateAiCheck();
+}
+function drawAIscatter(){if(S.ai&&$('#p-ai').classList.contains('on'))scatter($('#ch6'),S.ai.points);}
+function updateAiCheck(){
+  const r=R();if(!S.ai||!r)return;const pt=aiFcFor();if(!pt)return;const w=W();let agree=0,n=0;
+  w.zones.forEach((z,k)=>{if(z.land<1)return;n++;const phys=r.an.zones[k].peakClass===2,ai=pt.fc[k].pCrit>=0.5;if(phys===ai)agree++;});
+  $('#aiCheck').innerHTML='Cross-check on the current view: the emulator and the full-resolution physics agree on <b>'+agree+' of '+n+'</b> zones (critical or not). The emulator learns from a coarser grid for speed, so treat it as a fast second opinion and the physics run as the reference.';
+}
+
+/* ---------- method doc ---------- */
+$('#methodDoc').innerHTML=`
+<h3>What the model does</h3>
+<p>FlowShield solves a two-dimensional, physically based flood simulation on a 44 × 33 km grid (550 m cells). Rain becomes runoff, runoff flows across terrain and through rivers, drains remove water, the sea pushes back, and every zone is classified Safe, Warning or Critical with a time to critical.</p>
+<h3>1. Water movement: local-inertial shallow-water equations</h3>
+<p>The solver uses the local-inertial simplification of the shallow-water equations (Bates et al., 2010), the scheme behind LISFLOOD-FP. Flux q between two neighbouring cells is updated each step:</p>
+<span class="eq">q(t+Δt) = [ q − g·h_f·Δt·∂(h+z)/∂x ] / [ 1 + g·Δt·n²·|q| / h_f^(7/3) ]
+h_f = max(η_i, η_j) − max(z_i, z_j)         η = z + h</span>
+<p>Here z is bed elevation, h is depth, n is Manning roughness (0.035 rivers to 0.12 forest) and g = 9.81. Continuity then updates depth: <code>Δh = (Δt/Δx)·Σ(q_in − q_out) + rain + inflow − drainage</code>. The time step follows the CFL rule <code>Δt = 0.7·Δx/√(g·h_max)</code>. A Froude limit keeps flow subcritical and a donor-cell limiter stops any cell giving away more water than it holds.</p>
+<h3>2. Runoff: SCS Curve Number</h3>
+<span class="eq">S = 25400/CN − 254        Ia = 0.2·S        Q = (P − Ia)² / (P − Ia + S)</span>
+<p>P is cumulative rainfall, Q cumulative runoff. CN comes from land use (urban 92, paddy 88, homestead 80, plantation 72, forest 60). The last five days of rain set antecedent moisture by interpolating CN between dry (AMC I), normal (II) and wet (III) conditions, so a saturated Kerala catchment sheds more water. Rain is stronger on the Ghats slopes by a gain factor <code>1 + k·z/z_max</code>.</p>
+<h3>3. Drainage, blockages and failures</h3>
+<p>Each land use has a drain capacity in mm/h (urban 25, paddy 8, homestead 6). Removed depth per step is <code>min(h, cap·m·(1−fail)·Δt)</code>, where m is the capacity slider and fail is 0.9 on cells you paint. High sea level reduces outfall on low ground by up to 60%. A river blockage lifts the bed of the chosen cells by 5 m, so water backs up and overtops the banks exactly as a debris jam would force it to.</p>
+<h3>4. Boundaries: catchment, dam and sea</h3>
+<p>Each river receives flow from the catchment upstream of the map through a linear reservoir, <code>dS/dt = A·Rc·P − S/K</code>, <code>Q = Q_base + S/K</code>, with runoff coefficient Rc rising as the catchment wets up. A dam release adds a trapezoidal hydrograph to the main river. The sea edge is forced to <code>η = −a·cos(2πt/12.42 h) + surge</code>, so high tide and storm surge create backwater that lifts river levels and floods the lowlands.</p>
+<h3>5. Risk classification and time to critical</h3>
+<p>Each land cell gets a hazard rating from the UK Defra/EA flood-risk method, <code>HR = d·(v + 0.5)</code>, where d is depth above the pre-storm level and v is speed.</p>
+<span class="eq">Critical: d ≥ d_crit  or  HR ≥ 1.25        Warning: d ≥ d_warn  or  HR ≥ 0.75</span>
+<p>A zone changes level when the chosen share of its area (default 10%) reaches that level. Time to critical is found by linear interpolation of the severity index between 30-minute frames, then shown relative to the time on the slider. People affected are summed from cell populations (land-use density × area).</p>
+<h3>6. Water-balance check</h3>
+<p>The run tracks every cubic metre: effective rain + river inflow − drainage − sea outflow must equal the change in storage. The value under the Timeline charts is that closing error (typically below 0.01%).</p>
+<h3>7. AI: a physics-trained emulator with uncertainty</h3>
+<p>The AI does not replace the physics. Forty random storms (Latin-hypercube sampled peak intensity, duration, shape, dam release, surge, antecedent rain, drainage state and Ghats gain) are run through the solver on a coarser grid. A neural network (two hidden layers of 24 tanh units, trained with Adam) learns from zone features and storm features to predict three things: probability of reaching critical (cross-entropy loss), log peak depth, and time to critical. After training it can run in milliseconds, so the sliders give an instant AI preview before the physics finishes, and 300 perturbed versions of the forecast (rain error, surge error, drain state) yield a probability of critical for each zone. Accuracy is scored on storms held out from training, and permutation importance shows what drives the risk.</p>
+<h3>Honest limits and the path to real deployment</h3>
+<ul>
+<li>The terrain is generated from Kerala-style parameters (Ghats relief, midland, backwater lowlands, meandering rivers, beach ridge). It is not a real place until you load a DEM; the import on the Data tab derives rivers, sea, land use and zones from an elevation grid.</li>
+<li>Drained water leaves the model instead of being routed through the drain network. The next step is to send it to the nearest river cell.</li>
+<li>Roughness, curve numbers and drain capacities are textbook values. To go live they need calibration against the August 2018 high-water marks and CWC gauge records.</li>
+<li>Rainfall enters by hourly CSV today. Production feeds would be IMD gridded nowcasts, KSEB reservoir release schedules and tide-gauge data. The bulletin output follows the Common Alerting Protocol used by India's SACHET system.</li>
+</ul>`;
+/* ---------- bulletin + export ---------- */
+function openModal(html){$('#modalBox').innerHTML=html+'<div style="text-align:right;margin-top:10px"><button class="btn" id="mclose">Close</button></div>';$('#modal').classList.add('on');$('#mclose').onclick=()=>$('#modal').classList.remove('on');}
+function bulletinData(){
+  const r=R(),w=W(),f=Math.min(S.f,r.res.t.length-1),tNow=r.res.t[f]/3600,items=[];
+  w.zones.forEach((z,k)=>{if(z.land<1)return;const Z=r.an.zones[k],s=zoneState(r,k,f);
+    if(Z.peakClass<1)return;const crit=Z.peakClass===2,rel=crit?(isFinite(s.rel)?s.rel:0):(isFinite(s.relW)?s.relW:0),h=Math.max(0,rel);
+    const people=Math.round((crit?Z.peakPopCrit:Z.peakPop)/100)*100;
+    items.push({zone:z.name,level:crit?'Critical':'Warning',severity:crit?'Severe':'Moderate',urgency:h<6?'Immediate':'Expected',hours:+h.toFixed(1),people,
+      en:(crit?'RED ALERT. ':'YELLOW ALERT. ')+z.name+': '+(crit?'critical flooding':'rising water')+(h>0?' expected in '+fmtH(h):' now')+'. About '+people.toLocaleString('en-IN')+' people in the affected area. '+(crit?'Move to higher ground now and follow local disaster management instructions. Emergency: 112.':'Prepare to move valuables and vulnerable family members to higher ground.'),
+      ml:crit?('അതീവ ജാഗ്രത: '+z.name+' പ്രദേശത്ത് '+(h>0?Math.max(1,Math.round(h))+' മണിക്കൂറിനുള്ളിൽ ':'ഇപ്പോൾ ')+'ഗുരുതര വെള്ളപ്പൊക്ക സാധ്യത. ഏകദേശം '+people.toLocaleString('en-IN')+' പേർ അപകടമേഖലയിൽ. '+(h>6?'സുരക്ഷിത സ്ഥലത്തേക്ക് മാറാൻ തയ്യാറായിരിക്കുക.':'ഉടൻ സുരക്ഷിത സ്ഥലത്തേക്ക് മാറുക.')):('ജാഗ്രത: '+z.name+' പ്രദേശത്ത് '+(h>0?Math.max(1,Math.round(h))+' മണിക്കൂറിനുള്ളിൽ ':'')+'വെള്ളം ഉയരാൻ സാധ്യത. തയ്യാറായിരിക്കുക.')});});
+  items.sort((a,b)=>(a.level===b.level?0:a.level==='Critical'?-1:1)||a.hours-b.hours);return{items,tNow};
+}
+$('#btnBulletin').onclick=()=>{
+  if(!R())return;const b=bulletinData();
+  const cap=JSON.stringify({identifier:'flowshield-'+Date.now(),sender:'flowshield@demo',status:'Exercise',msgType:'Alert',scope:'Public',info:b.items.map(i=>({category:'Met',event:'Flood',urgency:i.urgency,severity:i.severity,certainty:'Likely',headline:i.en.split('.')[0],description:i.en,area:{areaDesc:i.zone}}))},null,1);
+  openModal('<h2>Alert bulletin</h2><p class="note">Issued for '+clockStr(b.tNow)+'. Every zone that reaches Warning or Critical in the viewed scenario, in English and Malayalam.</p>'+
+   (b.items.length?b.items.map(i=>'<div class="alertitem'+(i.level==='Warning'?' w':'')+'"><b>'+i.zone+'</b> · '+i.level+' · '+i.urgency+'<div class="en">'+i.en+'</div><div class="ml">'+i.ml+'</div></div>').join(''):'<p>No zone reaches Warning in this scenario. No bulletin needed.</p>')+
+   '<details><summary style="cursor:pointer;color:var(--vio)">CAP message (JSON)</summary><textarea readonly id="capTxt">'+cap.replace(/</g,'&lt;')+'</textarea></details>');
+};
+$('#btnExport').onclick=()=>{
+  const r=R();if(!r)return;const w=W();let csv='zone,mean_elevation_m,population,peak_people_affected,peak_people_critical,peak_depth_p90_m,class,eta_warning_h,eta_critical_h\n';
+  w.zones.forEach((z,k)=>{const Z=r.an.zones[k];csv+=[z.name,z.meanZ.toFixed(1),Math.round(z.pop),Math.round(Z.peakPop),Math.round(Z.peakPopCrit),Z.peakP90.toFixed(2),['Safe','Warning','Critical'][Z.peakClass],isFinite(Z.etaW)?Z.etaW.toFixed(1):'',isFinite(Z.etaC)?Z.etaC.toFixed(1):''].join(',')+'\n';});
+  openModal('<h2>Export results</h2><p class="note">Zone table for the viewed scenario. Copy it into a spreadsheet.</p><textarea id="expTxt" readonly>'+csv+'</textarea><button class="btn" id="cpy">Copy to clipboard</button>');
+  $('#cpy').onclick=()=>{const t=$('#expTxt');t.select();try{navigator.clipboard.writeText(t.value).then(()=>toast('Copied'),()=>{document.execCommand('copy');toast('Copied');});}catch(e){document.execCommand('copy');toast('Copied');}};
+};
+$('#modal').addEventListener('click',e=>{if(e.target.id==='modal')$('#modal').classList.remove('on');});
+/* ---------- imports ---------- */
+function reworld(pair,label){
+  S.ver++;S.pair=pair;prepMap();S.presets=makePresets(W());S.results={};S.ai=null;S.sel=-1;S.view='custom';
+  const p=S.presets.find(x=>x.id==='heavy');setScenario(p);S.sc.name='Custom';S.sc.id='heavy';buildControls();$('#aiMetrics').innerHTML='';$('#aiImp').innerHTML='';
+  runCustom().then(()=>runCompare()).then(()=>trainAI());if(label)toast(label);
+}
+$('#demFile').addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{try{const dem=parseDEM(rd.result),cell=+$('#demCell').value||90;
+  const pair=makeWorldPairFromDEM(dem,cell,S.fineNx,S.fineNx/56);$('#demInfo').textContent='Loaded '+dem.cols+' × '+dem.rows+' cells at '+cell+' m. Rivers, sea and land use were derived from the elevations.';reworld(pair,'DEM loaded. Re-running everything.');}catch(err){$('#demInfo').textContent='Import failed: '+err.message;}};rd.readAsText(f);});
+$('#btnDemExport').onclick=()=>{openModal('<h2>Current DEM</h2><p class="note">Elevations in metres, 550 m cells, north to south. Save as .csv and load it back with the DEM importer (set cell size to 550).</p><textarea readonly id="demTxt">'+demToCSV(W())+'</textarea>');};
+$('#rainFile').addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{const v=rd.result.split(/\r?\n/).map(l=>{const p=l.trim().split(/[,;\s]+/);return parseFloat(p[p.length-1]);}).filter(x=>!isNaN(x)&&x>=0);
+  if(v.length<3){$('#rainInfo').textContent='Need at least 3 hourly values.';return;}S.sc.rain.series=v;S.sc.horizon=Math.max(S.sc.horizon,Math.min(96,Math.ceil(v.length)));$('#rainInfo').textContent='Loaded '+v.length+' hourly values. Press Run.';buildControls();onEdit();};rd.readAsText(f);});
+$('#btnRainClear').onclick=()=>{S.sc.rain.series=null;$('#rainInfo').textContent='Using the storm shape sliders.';onEdit();};
+/* ---------- events + init ---------- */
+function bindUI(){
+  $('#btnRun').onclick=runCustom;$('#btnTrain').onclick=()=>{if(S.aiBusy)return;S.ai=null;for(const k in S.results)S.results[k].aiFc=null;trainAI();};$('#btnAll').onclick=()=>runCompare();
+  $('#btnRebuild').onclick=()=>{buildWorld();const p=S.presets.find(x=>x.id==='heavy');setScenario(p);S.sc.name='Custom';S.sc.id='heavy';buildControls();$('#aiMetrics').innerHTML='';$('#aiImp').innerHTML='';runCustom().then(()=>runCompare()).then(()=>trainAI());};
+  const lc=$('#layerChips');[['depth','Water depth'],['risk','Risk level'],['eta','Time to critical'],['ai','AI probability'],['speed','Velocity'],['elev','Elevation'],['lu','Land use'],['pop','Population']].forEach(l=>{const b=document.createElement('button');b.className='chip'+(l[0]===S.layer?' on':'');b.textContent=l[1];b.onclick=()=>{S.layer=l[0];[...lc.querySelectorAll('.chip:not(.lbl)')].forEach(x=>x.classList.toggle('on',x===b));drawMap();};lc.appendChild(b);});
+  const sp=document.createElement('span');sp.className='sep';lc.appendChild(sp);const lb=document.createElement('button');lb.className='chip lbl on';lb.textContent='Zone names';lb.onclick=()=>{S.labels=!S.labels;lb.classList.toggle('on',S.labels);drawMap();};lc.appendChild(lb);
+  $('#tslider').addEventListener('input',e=>{S.f=+e.target.value;updatePanels();drawMap();chartsSoon();});
+  $('#speed').onchange=e=>S.speed=+e.target.value;
+  $('#btnPlay').onclick=()=>{S.playing=!S.playing;$('#btnPlay').textContent=S.playing?'Pause':'Play';if(S.playing){const r=R();if(r&&S.f>=r.res.t.length-1)S.f=0;S.acc=0;S.last=performance.now();requestAnimationFrame(playTick);}};
+  $('#tabs').addEventListener('click',e=>{const b=e.target.closest('.tab');if(!b)return;document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t===b));document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('on',p.id===b.dataset.p));chartsSoon();drawAIscatter();});
+  $('#zones').addEventListener('click',e=>{const row=e.target.closest('.row');if(!row)return;S.sel=+row.dataset.k;updatePanels();drawMap();chartsSoon();});
+  $('#zones').addEventListener('keydown',e=>{if(e.key==='Enter'){const row=e.target.closest('.row');if(row){S.sel=+row.dataset.k;updatePanels();drawMap();chartsSoon();}}});
+  $('#scTable').addEventListener('click',e=>{const tr=e.target.closest('tr.clk');if(!tr)return;S.view=tr.dataset.k;S.dirty=false;S.f=Math.min(S.f,R().res.t.length-1);S.sel=-1;afterView();});
+  let rt;window.addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(()=>{drawMap();chartsSoon();drawAIscatter();},120);});
+  bindMap();
+}
+function playTick(now){
+  if(!S.playing)return;const r=R();if(!r){S.playing=false;return;}
+  S.acc+=(now-S.last)/1000*6*S.speed;S.last=now;
+  if(S.acc>=1){const n=Math.floor(S.acc);S.acc-=n;S.f=Math.min(r.res.t.length-1,S.f+n);updatePanels();drawMap();chartsSoon();
+    if(S.f>=r.res.t.length-1){S.playing=false;$('#btnPlay').textContent='Play';return;}}
+  requestAnimationFrame(playTick);
+}
+async function init(){
+  buildWorld();const p=S.presets.find(x=>x.id==='heavy');setScenario(p);S.sc.name='Custom';S.sc.id='heavy';
+  buildControls();bindUI();$('#presetDesc').textContent=p.desc;$('#presetChips').querySelector('[data-id="heavy"]').classList.add('on');
+  await runCustom();
+  runCompare().then(()=>trainAI());
+}
+window.addEventListener('DOMContentLoaded',()=>{init().catch(e=>{console.error(e);document.body.insertAdjacentHTML('afterbegin','<pre style="color:#f88;padding:20px">'+e.stack+'</pre>');});});
+
+
+</script></body></html>
