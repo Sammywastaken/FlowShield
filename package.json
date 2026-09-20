@@ -1,0 +1,12 @@
+{
+  "name": "flowshield",
+  "version": "1.0.0",
+  "description": "Physics-based flood simulation and AI early-warning dashboard for Kerala. Zero dependencies.",
+  "license": "MIT",
+  "scripts": {
+    "build": "python3 build.py",
+    "test": "node tests/test_terrain.js && node tests/test_scenarios.js && node tests/test_dem.js",
+    "test:ai": "node tests/test_ai.js",
+    "test:browser": "python3 tests/browser_smoke.py"
+  }
+}

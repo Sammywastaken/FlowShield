@@ -1,0 +1,87 @@
+<header class="top">
+  <div class="brand"><h1>FLOWSHIELD</h1><p>Predict the flood. Protect the future.</p></div>
+  <div class="region"><b>Kerala midland–lowland river basin.</b> Physics-based flood twin with AI early warning. Terrain is generated from Ghats-to-coast parameters; real DEM import is built in.</div>
+  <button class="btn" id="btnBulletin">Alert bulletin</button>
+  <button class="btn" id="btnExport">Export results</button>
+</header>
+<div class="alertbar safe" id="alertbar" role="status" aria-live="polite"><span class="dot"></span><span>Building the basin…</span></div>
+<main class="layout">
+  <aside class="card controls" id="controls">
+    <details open><summary>Scenario</summary>
+      <div class="chips" id="presetChips"></div>
+      <p class="note" id="presetDesc">Pick a preset or shape your own storm below.</p>
+    </details>
+    <details open><summary>Rainfall</summary><div id="c-rain"></div>
+      <p class="note" id="rainStats"></p></details>
+    <details><summary>Rivers and dam</summary><div id="c-river"></div></details>
+    <details><summary>Sea and tide</summary><div id="c-sea"></div></details>
+    <details open><summary>Drainage</summary><div id="c-drain"></div>
+      <p class="note">Tools act on the map. Fail drains paints clogged drainage; Block river drops a debris jam or collapsed embankment across the channel.</p>
+      <div class="chips" id="toolChips"></div>
+      <p class="note" id="toolInfo"></p></details>
+    <details><summary>Warning thresholds</summary><div id="c-th"></div>
+      <p class="note">Depth or hazard rating HR = d·(v+0.5) triggers the level. Changes re-classify instantly, no re-run.</p></details>
+    <details><summary>Terrain</summary><div id="c-terrain"></div>
+      <button class="btn" id="btnRebuild" style="width:100%">Rebuild terrain</button></details>
+    <div class="runbar"><button class="btn pri" id="btnRun">Run simulation</button><div class="prog" id="prog"><i></i></div><p class="note" id="runInfo" style="text-align:center"></p></div>
+  </aside>
+
+  <section class="center">
+    <div class="card">
+      <div class="maptools" id="layerChips"></div>
+      <div class="mapwrap" id="mapwrap"><canvas id="map"></canvas><div class="tip" id="tip"></div><div class="legend" id="legend"></div></div>
+      <div class="timebar">
+        <button class="btn" id="btnPlay" aria-label="Play or pause">Play</button>
+        <input type="range" id="tslider" min="0" max="144" value="0" aria-label="Simulation time">
+        <div class="clock" id="clock"></div>
+        <select id="speed" style="width:74px" aria-label="Playback speed"><option value="1">1×</option><option value="2">2×</option><option value="4">4×</option></select>
+      </div>
+    </div>
+    <div class="card">
+      <div class="tabs" role="tablist" id="tabs">
+        <button class="tab on" data-p="p-time">Timeline</button><button class="tab" data-p="p-scen">Scenarios</button><button class="tab" data-p="p-ai">AI forecast</button><button class="tab" data-p="p-method">Method</button><button class="tab" data-p="p-data">Data</button>
+      </div>
+      <div class="panel on" id="p-time">
+        <div class="grid2">
+          <div class="cbox"><h3>Rainfall and tide</h3><small id="s1"></small><canvas class="ch" id="ch1"></canvas></div>
+          <div class="cbox"><h3>People affected over time</h3><small>Warning level or worse, and critical level</small><canvas class="ch" id="ch3"></canvas></div>
+          <div class="cbox"><h3 id="h2">Selected zone</h3><small>Share of zone area at each level. Dashed line is the zone trigger.</small><canvas class="ch" id="ch2"></canvas></div>
+          <div class="cbox"><h3>River gauge</h3><small>Stage at the main-river gauge against bank-full depth</small><canvas class="ch" id="ch4"></canvas></div>
+        </div>
+        <p class="note" id="massNote"></p>
+      </div>
+      <div class="panel" id="p-scen">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><p class="note" style="margin:0">All five presets plus your custom run, side by side. Click a row to load it on the map.</p><button class="btn" id="btnAll">Run all scenarios</button></div>
+        <div style="overflow:auto;margin-top:8px"><table id="scTable"></table></div>
+        <div class="cbox" style="margin-top:12px"><h3>People affected by scenario</h3><canvas class="ch" id="ch5" style="height:220px"></canvas></div>
+      </div>
+      <div class="panel" id="p-ai">
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><button class="btn" id="btnTrain">Retrain emulator</button><p class="note" id="aiStatus" style="flex:1;margin:0">The emulator trains itself in the background from an ensemble of physics runs.</p></div>
+        <div class="prog" id="aiprog" style="display:block"><i></i></div>
+        <div class="metrics" id="aiMetrics"></div>
+        <div class="grid2">
+          <div class="cbox"><h3>Emulator vs physics</h3><small>Peak zone depth on held-out storms (m)</small><canvas class="ch" id="ch6" style="height:220px"></canvas></div>
+          <div class="cbox"><h3>What drives the risk</h3><small>Permutation importance on held-out storms</small><div class="bars" id="aiImp" style="margin-top:8px"></div></div>
+        </div>
+        <p class="note" id="aiCheck"></p>
+      </div>
+      <div class="panel" id="p-method"><div class="doc" id="methodDoc"></div></div>
+      <div class="panel" id="p-data">
+        <div class="grid2">
+          <div class="cbox"><h3>Elevation model (DEM)</h3><p class="note">Import an Esri ASCII grid or a plain CSV of elevations (rows north to south, west edge toward the sea). Rivers, sea and land use are derived from the DEM.</p>
+            <div class="ctl"><label>Source cell size (m)</label><input type="number" id="demCell" value="90"></div>
+            <input type="file" id="demFile" accept=".asc,.csv,.txt"><div class="chips"><button class="btn" id="btnDemExport">Export current DEM</button></div><p class="note" id="demInfo"></p></div>
+          <div class="cbox"><h3>Rainfall feed</h3><p class="note">Load an hourly rainfall series from a gauge or forecast (one mm value per line, or time,mm). It replaces the storm shape.</p>
+            <input type="file" id="rainFile" accept=".csv,.txt"><div class="chips"><button class="btn" id="btnRainClear">Use storm shape</button></div><p class="note" id="rainInfo"></p></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <aside class="right">
+    <div class="kpis" id="kpis"></div>
+    <div class="card"><div class="zhead"><h2>Early warning</h2><span class="note" id="zsub"></span></div><div class="zones" id="zones"></div></div>
+  </aside>
+</main>
+<div class="modal" id="modal"><div class="box" id="modalBox"></div></div>
+<div class="toast" id="toast"></div>
