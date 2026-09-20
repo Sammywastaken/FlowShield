@@ -458,6 +458,8 @@ Because `engine.js` and `ai.js` never touch the DOM, they run identically in the
 - OASIS (2010). *Common Alerting Protocol Version 1.2.*
 - Indian Meteorological Department rainfall intensity classes (light, moderate, heavy, very heavy, extremely heavy) used for the rain-class label.
 
+## Built with the help of Claude AI.
+
 ## Licence
 
 MIT. See `LICENSE`.
